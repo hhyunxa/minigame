@@ -157,6 +157,24 @@ label.fld input{font-size:16px;padding:8px 10px;border:1.5px solid var(--line);b
 .fn-piste b.me{background:#e2412f}.fn-piste b.op{background:#2fbf5b}
 .fn-sub{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
 .fn-sub .ok{color:var(--ink);font-weight:700}
+.cu-hud{left:16px;top:22px;width:228px;display:flex;flex-direction:column;gap:14px}
+.cu-row{display:flex;align-items:center;gap:8px;font-size:14px}
+.cu-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cu-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);flex:none}
+.cu-dot.y{background:#ffc93c}.cu-dot.r{background:#e2412f}
+.cu-left{font-size:15px;letter-spacing:2px;white-space:nowrap}
+.cu-state{font-size:12px;color:var(--muted)}
+.cu-house canvas{border-radius:12px;background:#eef6fb}
+.cu-pow{left:50%;transform:translateX(-50%);bottom:18px;width:min(560px,calc(100% - 32px));background:rgba(255,255,255,.95);border:2px solid var(--ink);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+.cu-turn{font-weight:700;font-size:14px}
+.cu-meter small{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.cu-meter em{font-style:normal;font-family:var(--mono);color:var(--ink)}
+.cu-track{position:relative;height:16px;border-radius:8px;background:linear-gradient(90deg,#e8ecf2,#ffd6d0);overflow:hidden;margin-top:3px}
+.cu-band{position:absolute;top:0;bottom:0;background:#9ad1f0}
+.cu-track b{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink)}
+.cu-lab{display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+.cu-spin{font-size:12px;color:var(--muted)}
+#cuSw{background:#3aa0e0}
 .vs-seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .vs-seg button.on{background:var(--yellow)}
 
@@ -313,7 +331,7 @@ th.num{text-align:right}
   .hud-hint{top:auto;bottom:78px;font-size:12px}
   .steps .step span{display:none}
   .ev-grid{grid-template-columns:minmax(0,1fr)}
-  .ar-hud{width:150px}.scope{width:150px;height:150px}
+  .ar-hud,.cu-hud{width:150px}.scope{width:150px;height:150px}
   .hud-msg{top:auto;bottom:130px}
   .ar-card div{width:32px;height:32px;font-size:13px}
 }
@@ -543,6 +561,20 @@ window.LOCAL_VENDOR = /^https?:$/.test(location.protocol);
       <div class="fn-piste"><span class="ln" style="left:50%"></span><i class="fn-reach" id="fnReach"></i><b class="me" id="fnDotL"></b><b class="op" id="fnDotR"></b></div>
       <div class="fn-sub"><span id="fnDist">거리 4.0m</span><span>5점 먼저 내면 승리</span></div>
     </div>
+  </div>
+  <div class="hud cu-hud" id="cuHud" hidden>
+    <div class="or-card">
+      <div class="cu-row"><i class="cu-dot y"></i><b id="cuNameL">나</b><span class="cu-left" id="cuLeftL"></span></div>
+      <div class="cu-row"><i class="cu-dot r"></i><b id="cuNameR">CPU</b><span class="cu-left" id="cuLeftR"></span></div>
+      <div class="cu-state" id="cuState"></div>
+    </div>
+    <div class="scope cu-house"><canvas id="cuHouseCv" width="360" height="360"></canvas><span>하우스 · 위에서 본 모습</span></div>
+  </div>
+  <div class="hud cu-pow" id="cuPow" hidden>
+    <div class="cu-turn" id="cuTurn"></div>
+    <div class="cu-meter"><small><span>힘 (파란 칸 = 하우스에 멈추는 힘)</span><em id="cuPowTxt">-</em></small><div class="cu-track"><i class="cu-band" id="cuBand"></i><b id="cuPowDot"></b></div><div class="cu-lab"><span>약하게 · 가드</span><span>세게 · 쳐내기</span></div></div>
+    <div class="cu-meter"><small><span>스위핑 (던진 뒤 연타 · 손 흔들기)</span><em id="cuSwTxt">0%</em></small><div class="balbar"><i id="cuSw"></i></div></div>
+    <div class="cu-spin" id="cuSpin"></div>
   </div>
   <div class="hud hud-msg" id="evMsg" hidden></div>
   <div class="hud hud-hint" id="hudHint" hidden></div>
@@ -1810,6 +1842,7 @@ function handTick(now) {
   if (EVENT === 'swim') { swHand(lm, now); return; }
   if (EVENT === 'tug') { tgHands(HT.all, now); return; }
   if (EVENT === 'fence') { fnHand(lm, now); return; }
+  if (EVENT === 'curl') { cuHand(lm, now); return; }
   if (EVENT === 'arch') { archHand(lm, s); return; }
   const ext = (tip, mcp) => ((lm[tip].x - lm[mcp].x) * ux + (lm[tip].y - lm[mcp].y) * uy) / s;
   const f = ext(8, 5) - ext(12, 9);
@@ -1872,6 +1905,14 @@ function drawCamTo(g, w, h) {
       const H = TG.hands[side], [x, y] = Q(9);
       g.fillStyle = col; g.font = `bold ${15 * k}px "Gowun Dodum", sans-serif`; g.fillText(`${TG.vs === '2p' ? (side ? '2P ' : '1P ') : ''}${H && H.n <= 1 ? '주먹' : '폄'}`, x - 18 * k, y - 22 * k);
     }
+  } else if (EVENT === 'curl' && view === 'race') {
+    const H = CU.hand, run = CU.phase === 'run';
+    if (!run) { g.strokeStyle = 'rgba(255,255,255,.6)'; g.setLineDash([5 * k, 5 * k]); g.lineWidth = 2 * k; for (const f of [0.2, 0.5, 0.8]) { g.beginPath(); g.moveTo(w * f, 0); g.lineTo(w * f, h); g.stroke(); } g.setLineDash([]); }
+    chain([5, 6, 7, 8], 'rgba(255,255,255,.6)', 2); chain([9, 10, 11, 12], 'rgba(255,255,255,.6)', 2);
+    const fist = H.n <= 1, [px, py] = [(w - (lm[0].x + lm[9].x) / 2 * w), (lm[0].y + lm[9].y) / 2 * h];
+    dot(px, py, fist ? '#ffc93c' : '#3aa0e0', 9);
+    g.fillStyle = '#fff'; g.font = `bold ${15 * k}px "Gowun Dodum", sans-serif`; g.fillText(run ? '좌우로 흔들기!' : fist ? '꽉 쥐고 있다가 펴기' : '주먹 = 잡기', px - 40 * k, py - 18 * k);
+    if (run) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(8 * k, h - 16 * k, w - 16 * k, 8 * k); g.fillStyle = '#3aa0e0'; g.fillRect(8 * k, h - 16 * k, (w - 16 * k) * H.sw, 8 * k); }
   } else if (EVENT === 'fence' && view === 'race') {
     const H = FN.hand;
     g.fillStyle = 'rgba(79,125,255,.2)'; g.fillRect(0, 0, w * 0.4, h); g.fillStyle = 'rgba(255,90,71,.2)'; g.fillRect(w * 0.6, 0, w * 0.4, h);
@@ -1897,6 +1938,7 @@ function camStateText() {
   else if (EVENT === 'orch') txt = `손 높이 ${Math.round(OR.height * 100)}% · ${Math.round(OR.tempo)} BPM`;
   else if (EVENT === 'swim') { const me = SW.sw[0]; txt = me && me.breath > 0.3 ? '손을 멈췄어요 → 숨 쉬는 중' : `손으로 원 그리기 → 팔 젓기 ${swRate(me).toFixed(1)}회/초`; }
   else if (EVENT === 'tug') { const st = i => { const Hh = TG.hands[i]; return !Hh || performance.now() - Hh.t > 400 ? '손 없음' : Hh.n <= 1 ? '주먹' : '폄'; }; txt = TG.vs === '2p' ? `1P ${st(0)} · 2P ${st(1)}` : `${st(0)} · 쥐었다 펴면 당겨요`; }
+  else if (EVENT === 'curl') { const H = CU.hand; txt = performance.now() - H.t > 400 ? '손이 안 보여요' : CU.phase === 'run' ? `손을 좌우로 흔들기 → 스위핑 ${Math.round(H.sw * 100)}%` : CU.phase === 'power' ? '손을 펴면 던져요' : CU.phase === 'aim' ? '손 위치로 조준 · 주먹을 쥐면 힘 모으기' : '기다리는 중'; }
   else if (EVENT === 'fence') { const H = FN.hand, lv = clamp(Math.round((H.grow - 1) / 0.25 * 5), 0, 5); txt = performance.now() - H.t > 400 ? '손이 안 보여요' : `${H.mv > 0 ? '앞으로' : H.mv < 0 ? '뒤로' : '멈춤'} · ${H.n <= 1 ? '주먹 = 막기' : '내밀기 ' + '■'.repeat(lv) + '□'.repeat(5 - lv)}`; }
   else txt = '검지 · 중지를 번갈아';
   if (GS.last && performance.now() - GS.lastT < 1500) txt = `${GESTURE_NAME[GS.last]}${GS.lastAct ? ' → ' + GS.lastAct : ''}`;
@@ -1929,19 +1971,21 @@ const HAND_TXT = {
   arch: '손을 카메라 앞에 보여주세요. 엄지와 검지를 집으면 시위를 잡고, 떼면 화살이 나가요.',
   orch: '손바닥을 카메라에 보여주세요. 손 높이로 소리 크기를, 흔드는 빠르기로 템포를 정해요.',
   swim: '손바닥을 카메라에 보여주세요. 손으로 큰 원을 그리면 팔을 젓고, 손을 멈추면 숨을 쉬어요.',
+  curl: '손바닥을 카메라에 보여주세요. 손을 좌우로 옮겨 조준하고, 주먹을 쥐고 있으면 힘이 차올라요. 손을 펴면 던지고, 던진 뒤 손을 좌우로 빠르게 흔들면 스위핑해요.',
   fence: '손바닥을 카메라에 보여주세요. 손을 화면 오른쪽에 두면 앞으로, 왼쪽에 두면 뒤로 가요. 손을 카메라 쪽으로 쭉 내밀면 찌르고, 주먹을 꽉 쥐면 막아요.',
   tug: '손을 카메라에 보여주세요. 주먹을 꽉 쥐었다 펴면 줄을 한 번 당겨요. 둘이서 할 때는 왼쪽 사람이 1P(파랑), 오른쪽 사람이 2P(빨강)예요.',
 };
 function beginEvent(mode) {
   sfx.unlock();
   $('#ovStart').hidden = true; $('#ovHand').hidden = true;
-  $('#hudCam').hidden = mode !== 'cam'; $('#fmBox').hidden = ['arch', 'orch', 'swim', 'tug', 'fence'].includes(EVENT);
+  $('#hudCam').hidden = mode !== 'cam'; $('#fmBox').hidden = ['arch', 'orch', 'swim', 'tug', 'fence', 'curl'].includes(EVENT);
   if (EVENT === 'run') { if (!RACE) return; RACE.mode = mode; RACE.rec.mode = mode; reMode(mode); if (RACE.online) onlineReady(mode); else startCountdown(); }
   else if (EVENT === 'hj') hjBegin(mode);
   else if (EVENT === 'orch') orBegin(mode);
   else if (EVENT === 'swim') swBegin(mode);
   else if (EVENT === 'tug') tgBegin(mode);
   else if (EVENT === 'fence') fnBegin(mode);
+  else if (EVENT === 'curl') cuBegin(mode);
   else arBegin(mode);
 }
 $('#btnKey').onclick = () => { if (EVENT === 'orch') orEnsureAudio(); beginEvent('key'); };
@@ -1955,7 +1999,7 @@ $('#btnCam').onclick = async () => {
     $('#startMsg').textContent = e && e.name === 'NotAllowedError' ? '카메라 권한이 거부됐어요. 주소창의 카메라 아이콘에서 허용하거나 키보드로 해주세요.' : '카메라나 손 인식 모델을 불러오지 못했어요. 인터넷 연결을 확인하거나 키보드로 해주세요.';
     return;
   }
-  $('#hudCam').hidden = false; $('#fmBox').hidden = ['arch', 'orch', 'swim', 'tug', 'fence'].includes(EVENT);
+  $('#hudCam').hidden = false; $('#fmBox').hidden = ['arch', 'orch', 'swim', 'tug', 'fence', 'curl'].includes(EVENT);
   $('#handTxt').textContent = HAND_TXT[EVENT];
   HANDCHECK.active = true; HANDCHECK.ok = 0;
 };
@@ -1986,6 +2030,7 @@ addEventListener('keydown', e => {
   if (EVENT === 'swim') { swKey(e); return; }
   if (EVENT === 'tug') { tgKey(e); return; }
   if (EVENT === 'fence') { fnKey(e, true); return; }
+  if (EVENT === 'curl') { cuKey(e, true); return; }
   if (EVENT === 'hj') {
     if (e.repeat) return;
     const k = e.code === 'KeyF' || e.code === 'ArrowLeft' ? 'L' : e.code === 'KeyJ' || e.code === 'ArrowRight' ? 'R' : null;
@@ -2006,7 +2051,7 @@ addEventListener('keydown', e => {
 });
 $$('#pads button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); if (RACE && RACE.phase === 'running' && RACE.mode === 'key') inputQueue.push(b.dataset.k); }));
 
-addEventListener('keyup', e => { if (view === 'race' && EVENT === 'arch' && e.code === 'Space' && AR.mode === 'key') arRelease(); if (view === 'race' && EVENT === 'orch') orKey(e, false); if (view === 'race' && EVENT === 'fence') fnKey(e, false); });
+addEventListener('keyup', e => { if (view === 'race' && EVENT === 'arch' && e.code === 'Space' && AR.mode === 'key') arRelease(); if (view === 'race' && EVENT === 'orch') orKey(e, false); if (view === 'race' && EVENT === 'fence') fnKey(e, false); if (view === 'race' && EVENT === 'curl') cuKey(e, false); });
 let toastTimer = null;
 function toast(txt, ms = 900) { const t = $('#toast'); t.textContent = txt; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms); }
 let msgTimer = null;
@@ -2113,6 +2158,7 @@ const EV_DEFS = {
   swim: { name: '50m 수영', pri: '새 종목', gesture: '손으로 원 그리기 = 팔 젓기, 손 멈추기 = 숨쉬기', key: 'F · J 번갈아 = 팔 젓기, 멈추면 숨쉬기', desc: 'CPU 선수 3명과 자유형 50m. 계속 저으면 숨이 차서 느려지니 틈틈이 숨을 쉬어야 해요.', color: '#8fd3f0' },
   tug: { name: '줄다리기', pri: '새 종목', gesture: '주먹을 꽉 쥐었다 펴기 = 한 번 당기기', key: 'F · J 연타 (둘이서: F = 1P, J = 2P)', desc: '30초 안에 가운데 리본을 우리 쪽 선까지 끌어오면 이겨요. CPU 팀과도, 친구와 한 화면에서도 대결해요.', color: '#f3c98b' },
   fence: { name: '펜싱', pri: '새 종목', gesture: '손 좌우 위치 = 앞뒤 이동, 손을 쭉 내밀기 = 찌르기, 주먹 쥐기 = 막기', key: 'A · D(←→) 이동 · J(Space) 찌르기 · K(F) 막기', desc: 'CPU 선수와 1:1 대결. 다가가서 찌르고, 상대 공격은 막은 뒤 바로 반격! 5점을 먼저 내면 이겨요.', color: '#c9d3df' },
+  curl: { name: '컬링', pri: '새 종목', gesture: '손 좌우 위치 = 조준, 주먹 쥐기 = 힘 모으기, 손 펴기 = 던지기, 손 흔들기 = 스위핑', key: '← → 조준 · Space 누르고 떼기 = 던지기 · Space 연타 = 스위핑', desc: 'CPU와 돌 4개씩 번갈아 던져요. 하우스 가운데에 더 가까운 돌이 점수! 스위핑하면 돌이 더 멀리, 덜 휘어 가요.', color: '#d8ecf7' },
   orch: { name: '오케스트라 지휘', pri: '새 종목', gesture: '손 높이 = 소리 크기, 흔드는 빠르기 = 템포', key: '마우스 위아래 · 흔드는 빠르기 (↑↓ · Space 박자)', desc: '악보 지시대로 빠르기와 셈여림을 맞춰 4악장을 지휘해요. 얼마나 맞췄는지가 점수예요.', color: '#b9e3c6' },
 };
 const EV_ART = {
@@ -2122,6 +2168,7 @@ const EV_ART = {
   swim: '<svg viewBox="0 0 160 90" aria-hidden="true"><rect x="0" y="44" width="160" height="46" fill="#3aa6e0"/><path d="M0 44 q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="#fff" stroke-width="3"/><path d="M0 70 H160" stroke="#e2412f" stroke-width="3" stroke-dasharray="8 6"/><g fill="none" stroke="#16181d" stroke-width="4" stroke-linecap="round"><circle cx="112" cy="40" r="8"/><path d="M104 44 H62 M62 44 L40 40 M62 44 L40 50 M96 44 L112 18 L132 26 M90 44 L96 60"/></g></svg>',
   tug: '<svg viewBox="0 0 160 90" aria-hidden="true"><rect x="0" y="70" width="160" height="20" fill="#d9b98a"/><path d="M80 70V90" stroke="#fff" stroke-width="3"/><path d="M8 46 H152" stroke="#8a5a3a" stroke-width="4"/><path d="M80 46 v14" stroke="#e2412f" stroke-width="5"/><g fill="none" stroke="#1f4fd1" stroke-width="4" stroke-linecap="round"><circle cx="28" cy="20" r="7"/><path d="M30 27 L40 52 L52 70 M40 52 L28 70 M34 36 L56 46"/></g><g fill="none" stroke="#e2412f" stroke-width="4" stroke-linecap="round"><circle cx="132" cy="20" r="7"/><path d="M130 27 L120 52 L108 70 M120 52 L132 70 M126 36 L104 46"/></g></svg>',
   fence: '<svg viewBox="0 0 160 90" aria-hidden="true"><rect x="0" y="70" width="160" height="10" fill="#8d97a3"/><path d="M80 70v10M52 70v10M108 70v10" stroke="#fff" stroke-width="1.5"/><path d="M58 40 L96 31" stroke="#5b6470" stroke-width="2.5" stroke-linecap="round"/><path d="M102 42 L84 29" stroke="#5b6470" stroke-width="2.5" stroke-linecap="round"/><path d="M90 22l2 6 6 1-5 3 2 6-5-4-5 4 2-6-5-3 6-1z" fill="#ffc93c" stroke="#16181d" stroke-width="1.2"/><g fill="none" stroke="#16181d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="36" cy="22" r="7"/><path d="M38 29 L44 47 L60 68 M44 47 L26 68 M40 34 L58 40 M40 34 L28 22"/></g><g fill="none" stroke="#2e8b57" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="124" cy="22" r="7"/><path d="M122 29 L116 47 L100 68 M116 47 L134 68 M120 34 L102 42 M120 34 L132 22"/></g></svg>',
+  curl: '<svg viewBox="0 0 160 90" aria-hidden="true"><rect x="0" y="52" width="160" height="38" fill="#eef6fb"/><ellipse cx="128" cy="72" rx="28" ry="12" fill="#2f6fd6"/><ellipse cx="128" cy="72" rx="18" ry="8" fill="#fff"/><ellipse cx="128" cy="72" rx="9" ry="4" fill="#e2412f"/><path d="M0 72 H160" stroke="#5b6470" stroke-width="1"/><ellipse cx="82" cy="74" rx="9" ry="4" fill="#8a929c" stroke="#16181d" stroke-width="1.5"/><rect x="78" y="66" width="8" height="5" rx="1" fill="#ffc93c" stroke="#16181d" stroke-width="1"/><path d="M52 32 L94 78" stroke="#2a2f38" stroke-width="3" stroke-linecap="round"/><rect x="88" y="76" width="14" height="5" rx="1" fill="#1f4fd1" transform="rotate(-10 95 78)"/><g fill="none" stroke="#16181d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="44" cy="14" r="7"/><path d="M47 21 L56 42 L66 62 M56 42 L46 62 M50 28 L64 40 M50 28 L60 48"/></g></svg>',
   orch: '<svg viewBox="0 0 160 90" aria-hidden="true"><rect x="0" y="66" width="160" height="24" fill="#b5814f"/><rect x="62" y="56" width="36" height="12" fill="#3b2a1e"/><g fill="none" stroke="#16181d" stroke-width="4" stroke-linecap="round"><circle cx="80" cy="18" r="8"/><path d="M80 26 V44 M80 44 L72 56 M80 44 L88 56 M80 31 L66 22 M80 31 L95 22"/></g><path d="M95 22 L120 6" stroke="#fafafa" stroke-width="3" stroke-linecap="round"/><g stroke="#16181d" stroke-width="2" fill="none"><path d="M131 34 V18 l9 3"/><path d="M33 30 V14 l9 3"/></g><g fill="#16181d"><circle cx="128" cy="34" r="4"/><circle cx="30" cy="30" r="4"/></g></svg>',
 };
 const START_TXT = {
@@ -2146,6 +2193,10 @@ const START_TXT = {
     lede: '5점을 먼저 내면 이겨요. 노란 거리 안으로 다가가서 찌르세요. 상대가 팔을 뒤로 당기면(찌르기 준비) 막고, 막은 직후에 찌르면 빠른 반격이 돼요.', cam: '웹캠으로 겨루기', key: '키보드로 겨루기',
     howto: '<div><strong>손으로 겨루기</strong><span>손을 화면 오른쪽에 두면 앞으로, 왼쪽에 두면 뒤로 가요. 편 손을 카메라 쪽으로 쭉 내밀면 찌르고, 주먹을 꽉 쥐면 막아요.</span></div><div><strong>키보드로 겨루기</strong><span>A · D(또는 ← →)로 앞뒤로 움직이고, J(또는 Space)로 찌르고, K(또는 F)로 막아요. 막기를 마구 누르면 빈틈이 생겨요.</span></div>',
   },
+  curl: {
+    lede: 'CPU와 돌 4개씩 번갈아 던지고, 마지막 돌은 내가 던져요. 하우스 가운데(티)에 더 가까운 돌이 점수예요. 돌은 회전 방향으로 휘고, 스위핑하면 더 멀리, 덜 휘어 가요.', cam: '웹캠으로 던지기', key: '키보드로 던지기',
+    howto: '<div><strong>손으로 던지기</strong><span>손을 좌우로 옮겨 조준하고, 주먹을 쥐고 있으면 힘이 오르내려요. 파란 칸에서 손을 펴면 하우스까지 가요. 던진 뒤 손을 좌우로 빠르게 흔들면 스위핑!</span></div><div><strong>키보드로 던지기</strong><span>← →로 조준, Q · E로 회전 방향. Space를 누르고 있다가 파란 칸에서 떼면 던져요. 던진 뒤 Space(또는 F · J)를 연타하면 스위핑!</span></div>',
+  },
   orch: {
     lede: '손을 올리면 소리가 커지고 내리면 작아져요. 빠르게 흔들면 템포가 빨라지고 천천히 움직이면 느려져요. 화면 위 악보 지시대로 지휘하세요.', cam: '웹캠으로 지휘하기', key: '마우스로 지휘하기',
     howto: '<div><strong>손으로 지휘하기</strong><span>손바닥을 올리면 크게, 내리면 작게. 손을 빠르게 흔들면 빠르게, 천천히 움직이거나 멈추면 느려져요.</span></div><div><strong>마우스로 지휘하기</strong><span>마우스를 위아래로 움직여 크기를, 빠르게 흔들어 템포를 정해요. ↑↓로 크기, Space를 박자에 맞춰 두드려 템포를 정할 수도 있어요.</span></div>',
@@ -2158,6 +2209,7 @@ function bestText(ev) {
   if (ev === 'hj') { const r = loadRecs('fsd-hj'); return r.length ? `내 최고 ${r[0].h.toFixed(2)}m` : '아직 기록 없음'; }
   if (ev === 'swim') { const r = loadRecs('fsd-swim'); return r.length ? `내 최고 ${r[0].time.toFixed(2)}초` : '아직 기록 없음'; }
   if (ev === 'tug') { const r = loadRecs('fsd-tug'); return r.length ? `가장 빠른 승리 ${r[0].time.toFixed(1)}초` : '아직 이긴 기록 없음'; }
+  if (ev === 'curl') { const r = loadRecs('fsd-curl'); return r.length ? `최고 기록 ${r[0].my} : ${r[0].op} 승리` : '아직 이긴 기록 없음'; }
   if (ev === 'fence') { const r = loadRecs('fsd-fence'); return r.length ? `최고 기록 5 : ${r[0].op} 승리` : '아직 이긴 기록 없음'; }
   if (ev === 'orch') { const r = loadRecs('fsd-orch'); return r.length ? `내 최고 ${r[0].score}점` : '아직 기록 없음'; }
   const r = loadRecs('fsd-arch'); return r.length ? `내 최고 ${r[0].total}점` : '아직 기록 없음';
@@ -2171,7 +2223,7 @@ function clearRunMeshes() { for (const m of R.meshes) { R.scene.remove(m.holder)
 function setHud(ev) {
   const run = ev === 'run';
   ['#hudStats', '#hudBal', '#hudProg', '#feed'].forEach(s => { $(s).hidden = !run; });
-  $('#hjHud').hidden = ev !== 'hj'; $('#arHud').hidden = ev !== 'arch'; $('#arCard').hidden = ev !== 'arch'; $('#orHud').hidden = ev !== 'orch'; $('#orTl').hidden = ev !== 'orch'; $('#swHud').hidden = ev !== 'swim'; $('#tgHud').hidden = ev !== 'tug'; $('#fnHud').hidden = ev !== 'fence';
+  $('#hjHud').hidden = ev !== 'hj'; $('#arHud').hidden = ev !== 'arch'; $('#arCard').hidden = ev !== 'arch'; $('#orHud').hidden = ev !== 'orch'; $('#orTl').hidden = ev !== 'orch'; $('#swHud').hidden = ev !== 'swim'; $('#tgHud').hidden = ev !== 'tug'; $('#fnHud').hidden = ev !== 'fence'; $('#cuHud').hidden = ev !== 'curl'; $('#cuPow').hidden = ev !== 'curl';
   $('#evMsg').hidden = true; $('#pads').hidden = true; $('#hjMeter').hidden = true;
 }
 function startEvent(ev) {
@@ -2184,7 +2236,7 @@ function startEvent(ev) {
   $('#lineup').hidden = !['run', 'swim'].includes(ev); $('#tugVs').hidden = ev !== 'tug';
   $('#btnCam').textContent = T.cam; $('#btnKey').textContent = T.key;
   HANDCHECK.active = false;
-  HJ.group.visible = ev === 'hj'; AR.group.visible = ev === 'arch'; OR.group.visible = ev === 'orch'; SW.group.visible = ev === 'swim'; TG.group.visible = ev === 'tug'; FN.group.visible = ev === 'fence';
+  HJ.group.visible = ev === 'hj'; AR.group.visible = ev === 'arch'; OR.group.visible = ev === 'orch'; SW.group.visible = ev === 'swim'; TG.group.visible = ev === 'tug'; FN.group.visible = ev === 'fence'; CU.group.visible = ev === 'curl';
   PAUSED = false; EMOTE.kind = null; $('#emoteHelp').hidden = !['run', 'hj'].includes(ev);
   if (ev !== 'run') { clearRunMeshes(); RACE = null; }
   if (ev !== 'hj') hjClear();
@@ -2193,8 +2245,9 @@ function startEvent(ev) {
   if (ev !== 'swim') swClear();
   if (ev !== 'tug') tgClear();
   if (ev !== 'fence') fnClear();
+  if (ev !== 'curl') cuClear();
   R.camPos = null; R.camLook = null;
-  if (ev === 'run') prepareRace(); else if (ev === 'hj') hjPrepare(); else if (ev === 'orch') orPrepare(); else if (ev === 'swim') swPrepare(); else if (ev === 'tug') tgPrepare(); else if (ev === 'fence') fnPrepare(); else arPrepare();
+  if (ev === 'run') prepareRace(); else if (ev === 'hj') hjPrepare(); else if (ev === 'orch') orPrepare(); else if (ev === 'swim') swPrepare(); else if (ev === 'tug') tgPrepare(); else if (ev === 'fence') fnPrepare(); else if (ev === 'curl') cuPrepare(); else arPrepare();
   $('#ovStart').hidden = false; $('#ovResult').hidden = true; $('#ovHand').hidden = true; $('#ovCount').hidden = true; $('#startMsg').textContent = '';
   $('#hudCam').hidden = true; $('#hudHint').hidden = true; $('#evMsg').hidden = true;
 }
@@ -2668,7 +2721,7 @@ function fireGesture(kind, now) {
   else if (EMOTE_GESTURES.includes(kind)) emoteGesture(kind);
 }
 let PAUSED = false;
-function currentMode() { return EVENT === 'run' ? RACE && RACE.mode : EVENT === 'hj' ? HJ.mode : EVENT === 'arch' ? AR.mode : EVENT === 'swim' ? SW.mode : EVENT === 'tug' ? TG.mode : EVENT === 'fence' ? FN.mode : OR.mode; }
+function currentMode() { return EVENT === 'run' ? RACE && RACE.mode : EVENT === 'hj' ? HJ.mode : EVENT === 'arch' ? AR.mode : EVENT === 'swim' ? SW.mode : EVENT === 'tug' ? TG.mode : EVENT === 'fence' ? FN.mode : EVENT === 'curl' ? CU.mode : OR.mode; }
 function isPlaying() {
   if (view !== 'race' || !$('#ovStart').hidden || !$('#ovResult').hidden || !$('#ovHand').hidden) return false;
   if (EVENT === 'run') return !!RACE && RACE.phase === 'running' && !RACE.replay;
@@ -2677,6 +2730,7 @@ function isPlaying() {
   if (EVENT === 'swim') return SW.phase === 'race';
   if (EVENT === 'tug') return TG.phase === 'pull';
   if (EVENT === 'fence') return ['ready', 'fight', 'touch'].includes(FN.phase);
+  if (EVENT === 'curl') return ['aim', 'power', 'cpuAim', 'slide', 'run', 'settle'].includes(CU.phase);
   return OR.phase === 'intro' || OR.phase === 'play';
 }
 function togglePause() {
@@ -2707,8 +2761,8 @@ function syncMenuFocus() {
 }
 function menuGesture(kind) {
   if (kind === 'fist') {
-    // 손 전체로 조작하는 양궁 · 지휘 · 수영 · 줄다리기 · 펜싱을 손으로 할 때는 주먹이 조작 동작과 겹쳐서 일시정지를 쓰지 않는다(P 키는 됨)
-    if (view === 'race' && !(['arch', 'orch', 'swim', 'tug', 'fence'].includes(EVENT) && currentMode() === 'cam') && (PAUSED || isPlaying())) { togglePause(); GS.lastAct = PAUSED ? '일시정지' : '계속'; return true; }
+    // 손 전체로 조작하는 양궁 · 지휘 · 수영 · 줄다리기 · 펜싱 · 컬링을 손으로 할 때는 주먹이 조작 동작과 겹쳐서 일시정지를 쓰지 않는다(P 키는 됨)
+    if (view === 'race' && !(['arch', 'orch', 'swim', 'tug', 'fence', 'curl'].includes(EVENT) && currentMode() === 'cam') && (PAUSED || isPlaying())) { togglePause(); GS.lastAct = PAUSED ? '일시정지' : '계속'; return true; }
     return false;
   }
   if (isPlaying() && !PAUSED) return false;
@@ -3665,6 +3719,350 @@ function fnEnd() {
   });
 }
 /* =========================================================
+   컬링: CPU와 돌 4개씩 번갈아 던진다(CPU 먼저, 마지막 돌은 나). 하우스 가운데(티)에 더 가까운 돌이 점수
+   돌은 앞으로 갈수록 느려지고, 회전 방향으로 조금씩 휜다(느릴수록 많이). 스위핑하면 덜 느려지고 덜 휜다
+   손: 손 좌우 위치 = 조준, 주먹 쥐기 = 돌 잡기(힘 게이지), 손 펴기 = 던지기, 손을 좌우로 빠르게 흔들기 = 스위핑
+   좌표: 시트 위 x = 던지는 선에서 앞으로(m), z = 오른쪽(+). 티(하우스 가운데)는 x = CU_D
+   ========================================================= */
+const CU_X = -60, CU_Z = 80, CU_D = 20, CU_A = 0.7, CU_C = 0.08, CU_R = 0.15, CU_W = 4.4, CU_HOUSE = 1.83, CU_HOG = CU_D - 5.5, CU_BACK = CU_D + CU_HOUSE, CU_N = 4;
+const cuV0 = p => 3.6 + 3.2 * p;
+const CU = { group: new THREE.Group(), stonesG: new THREE.Group(), phase: 'off', mode: 'key', tok: 0, turn: 0, stones: [], cur: null, aimZ: 0, spin: 1, spinAuto: true, pow: 0, powDir: 1, v0: 0, sweep: 0, sweepImp: 0, cpuSweep: 0, phT: 0, acc: 0, teams: [], keys: { l: false, r: false }, hand: { t: 0, n: 4, open: false, px: 0.5, hist: [], sw: 0 }, yeongT: 0, plan: null, ghost: null, tk: [0, 0], result: null };
+(function buildSheet() {
+  const G = CU.group; G.visible = false; R.scene.add(G); G.add(CU.stonesG);
+  const lam = c => new THREE.MeshLambertMaterial({ color: c });
+  const flat = (w, h, c, x, z, y) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), lam(c)); m.rotation.x = -Math.PI / 2; m.position.set(CU_X + x, y, CU_Z + z); m.receiveShadow = true; G.add(m); return m; };
+  const x0 = -5, x1 = CU_BACK + 1.6, L = x1 - x0;
+  flat(L, CU_W, '#eef6fb', (x0 + x1) / 2, 0, 0.01);
+  for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(L, 0.18, 0.1), lam('#ffffff')); b.position.set(CU_X + (x0 + x1) / 2, 0.09, CU_Z + s * (CU_W / 2 + 0.05)); b.castShadow = true; G.add(b); }
+  const bb = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, CU_W + 0.2), lam('#ffffff')); bb.position.set(CU_X + x1 + 0.05, 0.09, CU_Z); G.add(bb);
+  for (const [r, c, y] of [[CU_HOUSE, '#2f6fd6', 0.012], [1.22, '#ffffff', 0.013], [0.61, '#e2412f', 0.014], [0.15, '#ffffff', 0.015]]) {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(r, 48), lam(c)); m.rotation.x = -Math.PI / 2; m.position.set(CU_X + CU_D, y, CU_Z); m.receiveShadow = true; G.add(m);
+  }
+  flat(x1 - (-3.2), 0.025, '#5b6470', (x1 - 3.2) / 2, 0, 0.016);
+  flat(0.025, CU_W, '#5b6470', CU_D, 0, 0.016); flat(0.04, CU_W, '#16181d', CU_BACK, 0, 0.016);
+  flat(0.1, CU_W, '#e2412f', CU_HOG, 0, 0.016); flat(0.1, CU_W, '#e2412f', 0, 0, 0.016);
+  const hack = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.5), lam('#16181d')); hack.position.set(CU_X - 3.9, 0.035, CU_Z); G.add(hack);
+  // 조준선 · 예상 도착 표시
+  const lg = new THREE.BufferGeometry().setFromPoints([V3(0, 0.03, 0), V3(1, 0.03, 0)]);
+  CU.aimLine = new THREE.Line(lg, new THREE.LineDashedMaterial({ color: '#16181d', dashSize: 0.35, gapSize: 0.25, transparent: true, opacity: 0.6 })); CU.aimLine.frustumCulled = false; G.add(CU.aimLine);
+  CU.ghostMesh = new THREE.Mesh(new THREE.RingGeometry(CU_R * 1.1, CU_R * 1.6, 32), new THREE.MeshBasicMaterial({ color: '#ffc93c', transparent: true, opacity: 0.85, side: THREE.DoubleSide })); CU.ghostMesh.rotation.x = -Math.PI / 2; G.add(CU.ghostMesh);
+  // 돌 · 빗자루 원본
+  const granite = new THREE.MeshStandardMaterial({ color: '#8a929c', roughness: 0.75 }), band = new THREE.MeshStandardMaterial({ color: '#5b6470', roughness: 0.6 });
+  CU.stoneProto = team => {
+    const S = new THREE.Group(), col = new THREE.MeshStandardMaterial({ color: team ? '#e2412f' : '#ffc93c', roughness: 0.45 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(CU_R * 0.92, CU_R, 0.1, 24), granite); body.position.y = 0.05; body.castShadow = true; S.add(body);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(CU_R * 0.7, CU_R * 0.92, 0.025, 24), band); top.position.y = 0.112; S.add(top);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.03), col); post.position.set(-0.05, 0.14, 0); S.add(post);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.03, 0.045), col); handle.position.set(0.02, 0.17, 0); handle.castShadow = true; S.add(handle);
+    return S;
+  };
+  CU.broomProto = () => {
+    const B = new THREE.Group();
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 1.15, 6), new THREE.MeshStandardMaterial({ color: '#2a2f38', roughness: 0.5 })); h.position.y = -0.575; B.add(h);
+    const hd = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.26), new THREE.MeshStandardMaterial({ color: '#1f4fd1', roughness: 0.8 })); hd.position.y = -1.15; hd.castShadow = true; B.add(hd);
+    return B;
+  };
+})();
+// 돌 움직임(1/120초씩). sweep은 지금 던진 돌에만 적용
+function cuStep(stones, dt, sweep, onHit) {
+  for (const s of stones) {
+    if (!s.moving || s.out) continue;
+    const v = Math.hypot(s.vx, s.vz); if (v < 0.01) { s.vx = s.vz = 0; s.moving = false; continue; }
+    const sw = s.cur ? sweep : 0, dx = s.vx / v, dz = s.vz / v;
+    const nv = Math.max(0, v - CU_A * (1 - 0.3 * sw) * dt);
+    const lat = s.spin * CU_C / (v + 0.6) * (1 - 0.5 * sw) * dt;
+    let ux = dx - dz * lat, uz = dz + dx * lat; const ul = Math.hypot(ux, uz); ux /= ul; uz /= ul;
+    s.vx = ux * nv; s.vz = uz * nv; s.x += s.vx * dt; s.z += s.vz * dt; s.w += s.spin * dt * 1.5;
+  }
+  // 같은 무게 두 돌의 충돌: 맞닿은 방향 속도를 주고받는다(반발 0.92)
+  for (let i = 0; i < stones.length; i++) for (let j = i + 1; j < stones.length; j++) {
+    const a = stones[i], b = stones[j]; if (a.out || b.out || (!a.moving && !b.moving)) continue;
+    const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz); if (d >= 2 * CU_R || d < 1e-6) continue;
+    const nx = dx / d, nz = dz / d, push = (2 * CU_R - d) / 2;
+    a.x -= nx * push; a.z -= nz * push; b.x += nx * push; b.z += nz * push;
+    const rv = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz; if (rv >= 0) continue;
+    const jj = -(1 + 0.92) * rv / 2;
+    a.vx -= jj * nx; a.vz -= jj * nz; b.vx += jj * nx; b.vz += jj * nz; a.moving = b.moving = true; a.hit = b.hit = true;
+    if (onHit) onHit(-rv);
+  }
+  for (const s of stones) if (!s.out && (Math.abs(s.z) > CU_W / 2 - CU_R || s.x - CU_R > CU_BACK)) { s.out = true; s.moving = false; s.vx = s.vz = 0; }
+}
+// 다른 돌 없이 혼자 던졌을 때 멈추는 곳(CPU 계획 · 예상 도착 표시용)
+function cuSolo(v0, aimZ, spin, untilX = Infinity) {
+  const L = Math.hypot(CU_D, aimZ), s = { x: 0, z: 0, vx: v0 * CU_D / L, vz: v0 * aimZ / L, spin, w: 0, moving: true };
+  for (let i = 0; i < 2400 && s.moving && s.x < untilX && !s.out; i++) cuStep([s], 1 / 60, 0);
+  return s;
+}
+// 점수: 하우스 안 돌 중 티에 가장 가까운 팀이, 상대의 가장 가까운 돌보다 안쪽에 있는 자기 돌 수만큼
+function cuScore(stones) {
+  const inH = stones.filter(s => !s.out && Math.hypot(s.x - CU_D, s.z) <= CU_HOUSE + CU_R).map(s => ({ s, d: Math.hypot(s.x - CU_D, s.z) })).sort((a, b) => a.d - b.d);
+  if (!inH.length) return { team: -1, pts: 0, counting: [] };
+  const team = inH[0].s.team; let pts = 0; const counting = [];
+  for (const e of inH) { if (e.s.team !== team) break; pts++; counting.push(e.s); }
+  return { team, pts, counting };
+}
+const cuTeamOf = turn => turn % 2 === 0 ? 1 : 0;
+function cuClear() {
+  CU.tok++;
+  for (const T of CU.teams) for (const m of T.members) { R.scene.remove(m.holder); m.mesh.dispose(); }
+  CU.teams = []; for (const s of CU.stones) CU.stonesG.remove(s.mesh); CU.stones = []; CU.cur = null; CU.phase = 'off';
+}
+function cuPrepare() {
+  cuClear();
+  const mus = orMusicians();
+  const team = (list, k) => ({
+    members: list.map((d, i) => {
+      const holder = new THREE.Group(), mesh = new CharMesh(d.model, d.color); holder.add(mesh.group);
+      const broom = CU.broomProto(); holder.add(broom);
+      if (i === 0) { const lab = k ? nameSprite('CPU · ' + BOT_DEFS[1].name, '#ffffff', '#e2412f') : nameSprite('나 · ' + playerName(), '#ffc93c', '#16181d'); lab.position.set(0.5, 1.75, 0); holder.add(lab); }
+      R.scene.add(holder); return { ...d, holder, mesh, broom, i, x: 0, z: 0, ph: 0, stand: 0 };
+    }),
+  });
+  CU.teams = [
+    team([{ model: PLAYER_MODEL, color: '#16181d' }, { model: mus[3].model, color: '#1f4fd1' }, { model: mus[4].model, color: '#1f4fd1' }], 0),
+    team([{ model: BOT_DEFS[1].model, color: '#e2412f' }, { model: BOT_DEFS[0].model, color: '#e2412f' }, { model: BOT_DEFS[2].model, color: '#e2412f' }], 1),
+  ];
+  Object.assign(CU, { phase: 'off', mode: 'key', turn: 0, aimZ: 0, spin: 1, spinAuto: true, pow: 0, sweep: 0, sweepImp: 0, cpuSweep: 0, phT: 0, acc: 0, plan: null, tk: [0, 0], result: null, shown: false, keys: { l: false, r: false } });
+  CU.hand.hist = []; CU.hand.open = false;
+  $('#cuNameL').textContent = '나 · ' + playerName(); $('#cuNameR').textContent = 'CPU · ' + BOT_DEFS[1].name;
+  cuNewStone(1); cuGhost(); cuHud();
+}
+function cuNewStone(team) {
+  const mesh = CU.stoneProto(team); CU.stonesG.add(mesh);
+  const s = { x: -2.6, z: 0, vx: 0, vz: 0, spin: 1, w: 0, team, moving: false, cur: true, hit: false, out: false, mesh };
+  for (const o of CU.stones) o.cur = false;
+  CU.stones.push(s); CU.cur = s;
+  const T = CU.teams[team]; T.members[0].stand = 0; T.members[0].x = s.x - 0.95; T.members[0].z = 0;
+  T.members.forEach((m, i) => { if (i) { m.x = 2.6 + i * 0.7; m.z = i === 1 ? 1.0 : -1.0; } });
+  return s;
+}
+function cuBegin(mode) {
+  CU.mode = mode; CU.phase = 'count'; const tok = CU.tok;
+  countdown(() => tok === CU.tok && EVENT === 'curl', () => cuNextTurn(true));
+}
+function cuNextTurn(first) {
+  if (!first) {
+    CU.turn++;
+    if (CU.turn >= CU_N * 2) { cuFinish(); return; }
+    cuNewStone(cuTeamOf(CU.turn));
+  }
+  const team = cuTeamOf(CU.turn); CU.pow = 0; CU.powDir = 1; CU.sweep = 0; CU.sweepImp = 0; CU.cpuSweep = 0; CU.phT = 0;
+  if (team === 1) { CU.phase = 'cpuAim'; CU.plan = cuCpuPlan(); evMsg(`${CU.turn + 1}번째 돌 · CPU 차례`, 1.6); }
+  else {
+    CU.phase = 'aim'; CU.plan = null; CU.spinAuto = true;
+    evMsg(CU.mode === 'cam' ? '손을 좌우로 움직여 조준 → 주먹을 쥐면 힘 모으기 → 손을 펴면 던져요' : '← → 조준 · Q/E 회전 · Space를 누르고 있다가 떼면 던져요', 3);
+  }
+}
+// CPU: 내 돌이 가장 안쪽이면 쳐내기(테이크아웃), 아니면 하우스 가운데 근처로 굴리기. 가끔 앞을 막는 가드
+function cuCpuPlan() {
+  const sc = cuScore(CU.stones), spin = Math.random() < 0.5 ? 1 : -1, gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 0.5;
+  let kind = 'draw', tx = CU_D - 0.25 + Math.random() * 0.6, tz = (Math.random() - 0.5) * 0.8;
+  const mine = sc.counting.length && sc.team === 0 ? sc.counting[0] : null;
+  if (mine && Math.random() < 0.7) { kind = 'take'; tx = mine.x; tz = mine.z; }
+  else if (sc.team === 1 && Math.random() < 0.35) { kind = 'guard'; tx = CU_D - 4.2; tz = sc.counting[0].z * 0.8; }
+  let v0, aimZ = tz;
+  if (kind === 'take') {
+    v0 = 6.4; for (let k = 0; k < 4; k++) { const s = cuSolo(v0, aimZ, spin, tx); aimZ += tz - s.z; }
+  } else {
+    v0 = Math.sqrt(2 * CU_A * tx);
+    for (let k = 0; k < 5; k++) { const s = cuSolo(v0, aimZ, spin); v0 *= Math.sqrt(tx / Math.max(1, s.x)); aimZ += tz - s.z; }
+  }
+  const err = CU.mode === 'cam' ? 1.25 : 1;
+  v0 *= 1 + gauss() * 0.026 * err; aimZ += gauss() * 0.16 * err;
+  return { kind, tx, tz, v0, aimZ: clamp(aimZ, -1.9, 1.9), spin };
+}
+function cuStartPower() { if (CU.phase !== 'aim') return; CU.phase = 'power'; CU.pow = 0; CU.powDir = 1; }
+function cuThrow(v0) {
+  if (CU.phase !== 'power' && CU.phase !== 'cpuAim') return;
+  CU.v0 = v0; CU.phase = 'slide'; CU.phT = 0; CU.cur.spin = CU.spin; sfx.step();
+}
+function cuSweepTap() { if (CU.phase === 'run' && cuTeamOf(CU.turn) === 0 && CU.cur.moving) { CU.sweepImp = Math.min(1.4, CU.sweepImp + 0.28); if (sfxOn) sfx.step(); } }
+function cuKey(e, down) {
+  if (CU.mode !== 'key') return;
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CU.keys.l = down; e.preventDefault(); return; }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') { CU.keys.r = down; e.preventDefault(); return; }
+  if (e.code === 'Space') {
+    e.preventDefault(); if (e.repeat) return;
+    if (down) { if (CU.phase === 'aim') cuStartPower(); else cuSweepTap(); }
+    else if (CU.phase === 'power') cuThrow(cuV0(CU.pow));
+    return;
+  }
+  if (!down || e.repeat) return;
+  if ((e.code === 'KeyQ' || e.code === 'KeyE') && (CU.phase === 'aim' || CU.phase === 'power')) { CU.spin = e.code === 'KeyQ' ? -1 : 1; CU.spinAuto = false; cuGhost(); }
+  else if (e.code === 'KeyF' || e.code === 'KeyJ') { cuSweepTap(); e.preventDefault(); }
+}
+// 손: 손바닥 가로 위치 = 조준, 편 손 → 주먹 = 힘 모으기 시작, 주먹 → 편 손 = 던지기, 던진 뒤 좌우로 빠르게 흔들면 스위핑
+function cuHand(lm, now) {
+  const d = (a, b) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y), s = d(0, 9) || 0.1, H = CU.hand;
+  const n = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([t, q]) => d(t, 0) > d(q, 0) * 1.1).length, px = 1 - (lm[0].x + lm[9].x) / 2;
+  H.t = now; H.n = n; H.px = px;
+  if (CU.phase === 'aim' || CU.phase === 'power') { const tz = clamp((px - 0.5) / 0.3, -1, 1) * 1.6; CU.aimZ += (tz - CU.aimZ) * 0.25; }
+  if (n >= 3) { if (CU.phase === 'power') cuThrow(cuV0(CU.pow)); H.open = true; }
+  else if (n <= 1 && H.open && CU.phase === 'aim') { H.open = false; cuStartPower(); }
+  H.hist = H.hist.filter(h => now - h.t < 300); H.hist.push({ t: now, px });
+  let path = 0; for (let i = 1; i < H.hist.length; i++) path += Math.abs(H.hist[i].px - H.hist[i - 1].px);
+  H.sw = clamp((path / 0.3 / s - 0.8) / 2.5, 0, 1);
+}
+function cuGhost() {
+  if (CU.spinAuto) CU.spin = CU.aimZ > 0.05 ? -1 : 1;
+  CU.ghost = cuSolo(cuV0(cuDrawP()), CU.aimZ, CU.spin);
+}
+// 혼자 던져서 티에 멈추는 힘(게이지 값)
+const cuDrawP = () => (Math.sqrt(2 * CU_A * CU_D) - 3.6) / 3.2;
+// 던지는 사람: 앞무릎을 깊게 굽히고 뒷다리를 뒤로 쭉 편 채 미끄러지며 왼손으로 돌 손잡이를 잡는다
+function deliverPose(M, hx, hy) {
+  const Ln = M.len, J = {}; J.hip = { x: 0, y: 0 };
+  const lean = 0.75, td = { x: Math.sin(lean), y: Math.cos(lean) };
+  J.neck = addv(J.hip, td, Ln.torso); J.head = addv(J.neck, rot(M.headVec, Math.atan2(td.y, td.x) - M.restTorsoAng));
+  J.kL = addv(J.hip, dirDown(1.45), Ln.thL); J.fL = addv(J.kL, dirDown(0.15), Ln.shL);
+  J.kR = addv(J.hip, dirDown(-1.25), Ln.thR); J.fR = addv(J.kR, dirDown(-1.5), Ln.shR);
+  for (const s of ['L', 'R']) J['s' + s] = { x: lerp(J.neck.x, J.hip.x, M['t' + s]), y: lerp(J.neck.y, J.hip.y, M['t' + s]) };
+  let minY = 1e9; for (const n of ['hip', 'kL', 'fL', 'kR', 'fR']) minY = Math.min(minY, J[n].y);
+  for (const n of ['head', 'neck', 'hip', 'sL', 'sR', 'kL', 'fL', 'kR', 'fR']) J[n].y += 0.04 - minY;
+  const ik = ikLow(J.sL, { x: hx, y: hy }, Ln.uaL, Ln.laL); J.eL = ik.e; J.hL = ik.h;
+  J.eR = addv(J.sR, dirDown(-0.9), Ln.uaR); J.hR = addv(J.eR, dirDown(-0.5), Ln.laR);
+  return J;
+}
+// 스위핑: 앞으로 숙여 걸으며 빗자루 머리를 돌 앞에서 앞뒤로 문지른다. osc = 문지르는 정도
+function sweepPose(M, ph, amp, t, osc) {
+  const J = runPose(M, ph, amp, 0.3), head = { x: 0.85 + 0.16 * Math.sin(t * 22) * osc, y: 0.03 };
+  const a = 0.8, top = { x: head.x - Math.cos(a) * 1.15, y: head.y + Math.sin(a) * 1.15 }, at = f => ({ x: lerp(head.x, top.x, f), y: lerp(head.y, top.y, f) });
+  const lo = ikLow(J.sL, at(0.55), M.len.uaL, M.len.laL); J.eL = lo.e; J.hL = lo.h;
+  const hi = ik2(J.sR, at(0.9), M.len.uaR, M.len.laR); J.eR = hi.e; J.hR = hi.h;
+  return { J, head, top };
+}
+const CU_DOWN = V3(0, -1, 0);
+function cuSetBroom(m, top, head, hz) {
+  const p = V3(top.x, top.y, 0.06), q = V3(head.x, head.y, hz), dir = q.clone().sub(p).normalize();
+  m.broom.position.copy(p); m.broom.quaternion.setFromUnitVectors(CU_DOWN, dir);
+}
+function cuSettle() {
+  const s = CU.cur;
+  if (!s.out && s.x < CU_HOG && !s.hit) { s.out = true; evMsg('호그 라인(빨간 선)을 못 넘어서 빠졌어요', 1.6); }
+  for (const o of CU.stones) if (o.out && o.mesh.parent) CU.stonesG.remove(o.mesh);
+  CU.phase = 'settle'; CU.phT = 0;
+  const sc = cuScore(CU.stones);
+  if (!(s.out && s.x < CU_HOG)) evMsg(sc.team < 0 ? '하우스 안에 돌이 없어요' : `지금은 ${sc.team ? 'CPU' : '내'} 돌이 가장 가까워요 · ${sc.pts}점`, 1.4);
+}
+function cuFinish() {
+  CU.phase = 'end'; CU.phT = 0; CU.result = cuScore(CU.stones);
+  const r = CU.result;
+  toast(r.team < 0 ? '무승부' : r.team === 0 ? `${r.pts}점 획득!` : 'CPU 득점', 1400);
+  if (r.team === 0) sfx.chime(); else if (r.team === 1) sfx.fall();
+}
+// headless: 그리지 않고 경기만 진행(자체 검사용)
+function cuFrame(dt, now, headless) {
+  const t = now / 1000, [A, B] = CU.teams; if (!A) return;
+  CU.phT += dt;
+  const myTurn = cuTeamOf(CU.turn) === 0, s = CU.cur;
+  // 조준
+  if (CU.phase === 'aim' || CU.phase === 'power') {
+    if (CU.mode === 'key') CU.aimZ = clamp(CU.aimZ + ((CU.keys.r ? 1 : 0) - (CU.keys.l ? 1 : 0)) * 1.2 * dt, -1.9, 1.9);
+    cuGhost();
+    if (CU.phase === 'power') { CU.pow += CU.powDir * dt / 1.3; if (CU.pow >= 1) { CU.pow = 1; CU.powDir = -1; } else if (CU.pow <= 0) { CU.pow = 0; CU.powDir = 1; } }
+  } else if (CU.phase === 'cpuAim') {
+    const P = CU.plan, u = clamp(CU.phT / 1.2, 0, 1); CU.aimZ = lerp(0, P.aimZ, ease(u)); CU.spin = P.spin; CU.pow = clamp((P.v0 - 3.6) / 3.2, 0, 1) * u;
+    if (CU.phT >= 1.5) cuThrow(P.v0);
+  } else if (CU.phase === 'slide') {
+    const u = clamp(CU.phT / 0.6, 0, 1); s.x = lerp(-2.6, 0, ease(u)); s.z = 0;
+    if (u >= 1) { const L = Math.hypot(CU_D, CU.aimZ); s.vx = CU.v0 * CU_D / L; s.vz = CU.v0 * CU.aimZ / L; s.moving = true; CU.phase = 'run'; CU.phT = 0; CU.acc = 0; }
+  }
+  if (CU.phase === 'run') {
+    // 스위핑 세기: 키보드는 연타할수록, 손은 빠르게 흔들수록. CPU는 모자랄 것 같으면 쓴다
+    CU.sweepImp *= Math.exp(-dt / 0.45);
+    const hs = CU.mode === 'cam' && now - CU.hand.t < 300 ? CU.hand.sw : 0;
+    if (myTurn) CU.sweep += (clamp(Math.max(CU.sweepImp, hs), 0, 1) - CU.sweep) * (1 - Math.exp(-dt * 8));
+    else { const v = Math.hypot(s.vx, s.vz), stop = s.x + v * v / (2 * CU_A); CU.sweep = CU.plan.kind !== 'take' && s.x > 4 && stop < CU.plan.tx - 0.2 ? 1 : 0; }
+    if (myTurn && CU.sweep > 0.6 && t - CU.yeongT > 1.6) { CU.yeongT = t; toast('영미~!', 700); }
+    CU.acc += dt; let n = 0;
+    while (CU.acc >= 1 / 120 && n < 40) { CU.acc -= 1 / 120; n++; cuStep(CU.stones, 1 / 120, CU.sweep, v => { if (v > 0.3 && sfxOn) sfx.thud(); }); }
+    for (const o of CU.stones) if (o.out && o.mesh.parent) { CU.stonesG.remove(o.mesh); if (o !== s && o.team !== s.team) CU.tk[s.team]++; }
+    if (CU.stones.every(o => !o.moving || o.out)) cuSettle();
+  } else CU.sweep *= Math.exp(-dt * 4);
+  if (CU.phase === 'settle' && CU.phT > 1.4) cuNextTurn(false);
+  if (CU.phase === 'end' && CU.phT > 1.6 && !CU.shown) { CU.shown = true; cuEnd(); }
+  if (headless) return;
+  // 그리기
+  for (const o of CU.stones) { o.mesh.position.set(CU_X + o.x, 0, CU_Z + o.z); o.mesh.rotation.y = -o.w; }
+  const act = cuTeamOf(Math.min(CU.turn, CU_N * 2 - 1));
+  CU.teams.forEach((T, k) => T.members.forEach(m => { m.holder.visible = k === act; }));
+  const T = CU.teams[act], thr = T.members[0];
+  if (['off', 'count', 'aim', 'power', 'cpuAim', 'slide'].includes(CU.phase)) { thr.x = s.x - 0.95; thr.stand = 0; }
+  else if (CU.phase === 'run' && thr.stand < 1) { thr.x += Math.max(0, 1.2 - thr.stand) * dt; thr.stand = Math.min(1, thr.stand + dt * 0.8); }
+  let Jt = deliverPose(thr.model, 0.95, 0.14);
+  if (CU.phase === 'end' && CU.result.team === act) Jt = cheerPose(thr.model, t, 0);
+  else if (thr.stand > 0) Jt = lerpJ(Jt, runPose(thr.model, 0, 0, 0.05), ease(thr.stand));
+  thr.mesh.update(Jt); thr.holder.position.set(CU_X + thr.x, 0, CU_Z + thr.z); thr.broom.visible = false;
+  T.members.forEach((m, i) => {
+    if (!i) return;
+    const side = i === 1 ? 1 : -1, running = CU.phase === 'run' && s.moving && !s.out;
+    if (running) { const nx = s.x + 0.3 - 0.85; m.ph += Math.max(0, nx - m.x) * 3.2; m.x = nx; m.z = s.z + side * 0.55; }
+    const v = running ? Math.hypot(s.vx, s.vz) : 0, sp = sweepPose(m.model, m.ph, clamp(v / 2, 0, 1) * 0.45, t + i, running ? CU.sweep : 0);
+    m.mesh.update(sp.J); m.holder.position.set(CU_X + m.x, 0, CU_Z + m.z); cuSetBroom(m, sp.top, sp.head, -side * 0.42);
+  });
+  const aiming = ['aim', 'power', 'cpuAim'].includes(CU.phase);
+  CU.aimLine.visible = aiming; CU.ghostMesh.visible = aiming && myTurn && CU.ghost && !CU.ghost.out;
+  if (aiming) {
+    const p = CU.aimLine.geometry.attributes.position; p.setXYZ(0, CU_X + s.x + 0.3, 0.03, CU_Z); p.setXYZ(1, CU_X + CU_D, 0.03, CU_Z + CU.aimZ); p.needsUpdate = true; CU.aimLine.computeLineDistances();
+    if (CU.ghost) CU.ghostMesh.position.set(CU_X + CU.ghost.x, 0.03, CU_Z + CU.ghost.z);
+  }
+  // 카메라: 조준할 때는 뒤에서, 돌이 가면 따라가고, 하우스 근처면 위에서
+  const near = (CU.phase === 'run' && s.x > CU_D - 7) || ['settle', 'end'].includes(CU.phase);
+  if (CU.phase === 'run' && !near) camTo(V3(CU_X + s.x - 4.5, 3.6, CU_Z + 5.5), V3(CU_X + s.x + 3, 0, CU_Z + s.z * 0.5), dt, 4);
+  else if (near) camTo(V3(CU_X + CU_D - 3.2, 6.5, CU_Z + 4.2), V3(CU_X + CU_D + 0.2, 0, CU_Z), dt, 2.5);
+  else camTo(V3(CU_X - 8, 3.4, CU_Z + 5.2), V3(CU_X + 0.5, 0.1, CU_Z - 0.4), dt, 3);
+  sunAt(CU_X + clamp(s.x, 0, CU_D), CU_Z);
+  R.renderer.render(R.scene, R.camera);
+  cuHud();
+}
+const cuHg = $('#cuHouseCv').getContext('2d');
+function cuDrawHouse() {
+  const g = cuHg, W2 = 360, k = W2 / 5.4, P = (x, z) => [W2 / 2 + z * k, W2 / 2 - (x - CU_D) * k];
+  g.fillStyle = '#eef6fb'; g.fillRect(0, 0, W2, W2);
+  for (const [r, c] of [[CU_HOUSE, '#2f6fd6'], [1.22, '#ffffff'], [0.61, '#e2412f'], [0.15, '#ffffff']]) { g.fillStyle = c; g.beginPath(); g.arc(W2 / 2, W2 / 2, r * k, 0, 7); g.fill(); }
+  g.strokeStyle = '#5b6470'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, W2 / 2); g.lineTo(W2, W2 / 2); g.moveTo(W2 / 2, 0); g.lineTo(W2 / 2, W2); g.stroke();
+  const [, by] = P(CU_BACK, 0); g.strokeStyle = '#16181d'; g.lineWidth = 4; g.beginPath(); g.moveTo(0, by); g.lineTo(W2, by); g.stroke();
+  if (CU.ghost && ['aim', 'power'].includes(CU.phase)) { const [x, y] = P(CU.ghost.x, CU.ghost.z); g.strokeStyle = '#ffc93c'; g.setLineDash([6, 5]); g.lineWidth = 4; g.beginPath(); g.arc(x, y, CU_R * k * 1.3, 0, 7); g.stroke(); g.setLineDash([]); }
+  const sc = cuScore(CU.stones);
+  for (const s of CU.stones) {
+    if (s.out || s.x < CU_D - 2.9) continue;
+    const [x, y] = P(s.x, s.z); g.fillStyle = '#8a929c'; g.strokeStyle = '#16181d'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, CU_R * k, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = s.team ? '#e2412f' : '#ffc93c'; g.beginPath(); g.arc(x, y, CU_R * k * 0.62, 0, 7); g.fill();
+    const ci = sc.counting.indexOf(s); if (ci >= 0) { g.fillStyle = '#16181d'; g.font = 'bold 15px "IBM Plex Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(ci + 1), x, y + 1); }
+  }
+}
+function cuHud() {
+  const left = k => { const thrown = CU.stones.filter(s => s.team === k && (s !== CU.cur || ['run', 'settle', 'end'].includes(CU.phase))).length; return '●'.repeat(CU_N - thrown) + '○'.repeat(thrown); };
+  $('#cuLeftL').textContent = left(0); $('#cuLeftR').textContent = left(1);
+  const sc = cuScore(CU.stones);
+  $('#cuState').textContent = sc.team < 0 ? '지금은 아무도 점수가 없어요' : `지금은 ${sc.team ? 'CPU' : '나'} ${sc.pts}점`;
+  const my = cuTeamOf(Math.min(CU.turn, CU_N * 2 - 1)) === 0;
+  $('#cuTurn').textContent = CU.phase === 'end' ? '경기 끝' : `${my ? '내 차례' : 'CPU 차례'} · ${CU.turn + 1} / ${CU_N * 2}번째 돌${CU.turn === CU_N * 2 - 1 ? ' (마지막 돌)' : ''}`;
+  $('#cuPowDot').style.left = CU.pow * 100 + '%'; $('#cuPowTxt').textContent = CU.phase === 'power' || CU.phase === 'cpuAim' ? Math.round(CU.pow * 100) + '%' : '-';
+  const pa = (Math.sqrt(2 * CU_A * (CU_D - CU_HOUSE)) - 3.6) / 3.2, pb = (Math.sqrt(2 * CU_A * (CU_D + CU_HOUSE)) - 3.6) / 3.2;
+  $('#cuBand').style.left = pa * 100 + '%'; $('#cuBand').style.width = (pb - pa) * 100 + '%';
+  $('#cuSw').style.width = CU.sweep * 100 + '%'; $('#cuSwTxt').textContent = Math.round(CU.sweep * 100) + '%';
+  $('#cuSpin').textContent = `회전: ${CU.spin > 0 ? '↻ 오른쪽으로 휨' : '↺ 왼쪽으로 휨'}${CU.mode === 'key' ? ' (Q · E로 바꾸기)' : ' (조준 방향에 맞춰 자동)'}`;
+  cuDrawHouse();
+}
+function cuEnd() {
+  const r = CU.result, win = r.team === 0, name = playerName(), my = win ? r.pts : 0, op = r.team === 1 ? r.pts : 0;
+  $('#evMsg').hidden = true;
+  let recs = loadRecs('fsd-curl'), mine = null;
+  if (win) { mine = { name, my, op, mode: CU.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.my - a.my || b.at - a.at); recs = recs.slice(0, 10); saveRecs('fsd-curl', recs); }
+  const inH = k => CU.stones.filter(s => s.team === k && !s.out && Math.hypot(s.x - CU_D, s.z) <= CU_HOUSE + CU_R).length;
+  showResult({
+    medal: r.team < 0 ? '무' : win ? '승' : '패', medalBg: r.team < 0 ? MEDAL_BG[3] : win ? MEDAL_BG[0] : MEDAL_BG[3],
+    main: `${my} : ${op}<em> ${r.team < 0 ? '무승부' : win ? '승리' : '패배'}</em>`,
+    sub: r.team < 0 ? '하우스 안에 남은 돌이 없어요' : win ? `티에 가장 가까운 돌부터 내 돌이 ${r.pts}개` : `티에 가장 가까운 돌부터 CPU 돌이 ${r.pts}개`,
+    verify: `<strong>하우스 안에 남은 내 돌 ${inH(0)}개 · CPU 돌 ${inH(1)}개</strong><span>쳐낸 상대 돌: 나 ${CU.tk[0]}개 · CPU ${CU.tk[1]}개</span>`,
+    verifyClass: win || r.team < 0 ? 'ok' : 'bad',
+    tblTitle: '이번 경기', tbl: `<tr><th>팀</th><th class="num">점수</th><th class="num">하우스 안 돌</th><th class="num">쳐낸 돌</th></tr><tr><td><b>${esc(name)}</b></td><td class="num">${my}</td><td class="num">${inH(0)}</td><td class="num">${CU.tk[0]}</td></tr><tr><td>CPU · ${esc(BOT_DEFS[1].name)}</td><td class="num">${op}</td><td class="num">${inH(1)}</td><td class="num">${CU.tk[1]}</td></tr>`,
+    rank: rankRows(recs, mine, r => `${r.my} : ${r.op} 승리`),
+    info: '한 엔드(돌 4개씩) 승부예요. 많은 점수 차로 이길수록 랭킹이 높아요. 끝부분에서 스위핑하면 돌이 2m쯤 더 가요.', again: '다시 던지기',
+  });
+}
+/* =========================================================
    메인 루프
    ========================================================= */
 let lastT = performance.now();
@@ -3691,6 +4089,7 @@ function frame(now) {
   if (EVENT === 'swim') { swFrame(dt, now); if (!$('#hudCam').hidden) drawCam(); return; }
   if (EVENT === 'tug') { tgFrame(dt, now); if (!$('#hudCam').hidden) drawCam(); return; }
   if (EVENT === 'fence') { fnFrame(dt, now); if (!$('#hudCam').hidden) drawCam(); return; }
+  if (EVENT === 'curl') { cuFrame(dt, now); if (!$('#hudCam').hidden) drawCam(); return; }
   if (RACE) {
     const race = RACE;
     if (race.phase === 'ready' || race.phase === 'countdown') {
@@ -4160,7 +4559,40 @@ function runSelftest() {
     }
     return { pass: !bad.length, detail: bad.length ? '이상한 판 ' + bad.join(' ') : '10판 정상' };
   });
-  fnClear(); PLAYER_MODEL = keepModel; $('#ovCount').hidden = true; $('#evMsg').hidden = true;
+  // 컬링
+  T('컬링: 파란 칸 힘으로 혼자 굴리면 하우스 안에 멈춤', () => {
+    const s = cuSolo(cuV0(cuDrawP()), 0, 1), d = Math.hypot(s.x - CU_D, s.z);
+    return { pass: d <= CU_HOUSE, detail: `티에서 ${d.toFixed(2)}m (x ${s.x.toFixed(2)}, 휨 ${s.z.toFixed(2)}m)` };
+  });
+  T('컬링: 스위핑하면 더 멀리 가고, 같은 거리에서 덜 휨', () => {
+    const run = (sw, untilX = Infinity) => { const s = { x: 0, z: 0, vx: 5, vz: 0, spin: 1, w: 0, moving: true, cur: true }; for (let i = 0; i < 4800 && s.moving && s.x < untilX; i++) cuStep([s], 1 / 120, sw); return s; };
+    const a = run(0), b = run(1), a15 = run(0, 15), b15 = run(1, 15);
+    return { pass: b.x > a.x + 3 && Math.abs(b15.z) < Math.abs(a15.z), detail: `멈춘 곳 ${a.x.toFixed(1)}m → ${b.x.toFixed(1)}m · 15m 지점 휨 ${a15.z.toFixed(2)} → ${b15.z.toFixed(2)}m` };
+  });
+  T('컬링: 정면으로 맞히면 맞은 돌이 밀려나고 던진 돌은 거의 멈춤', () => {
+    const a = { x: 0, z: 0, vx: 3, vz: 0, spin: 0, w: 0, moving: true }, b = { x: 1, z: 0, vx: 0, vz: 0, spin: 0, w: 0, moving: false };
+    for (let i = 0; i < 60; i++) cuStep([a, b], 1 / 120, 0);
+    const va = Math.hypot(a.vx, a.vz); return { pass: va < 0.3 && b.vx > 2.4 && b.hit, detail: `던진 돌 ${va.toFixed(2)}m/s · 맞은 돌 ${b.vx.toFixed(2)}m/s` };
+  });
+  T('컬링: 점수 = 가장 가까운 팀이, 상대의 가장 가까운 돌보다 안쪽에 둔 돌 수', () => {
+    const st = (team, x, z) => ({ team, x: CU_D + x, z, out: false });
+    const r1 = cuScore([st(0, 0.1, 0), st(0, 0.5, 0), st(1, 0.8, 0), st(0, 1.2, 0)]), r2 = cuScore([st(1, 0.3, 0), st(0, 3, 0)]), r3 = cuScore([st(0, 0, 2.5)]);
+    return { pass: r1.team === 0 && r1.pts === 2 && r2.team === 1 && r2.pts === 1 && r3.team === -1, detail: `${r1.team}팀 ${r1.pts}점 · ${r2.team}팀 ${r2.pts}점 · 하우스 밖만 있으면 ${r3.team}` };
+  });
+  T('컬링: 자동 경기 6판이 돌 8개를 다 던지고 끝남', () => {
+    const bad = [];
+    for (let g = 0; g < 6; g++) {
+      cuPrepare(); CU.mode = 'key'; cuNextTurn(true); let ok = true;
+      for (let i = 0; i < 60 * 240 && CU.phase !== 'end'; i++) {
+        if (CU.phase === 'aim') { CU.aimZ = (Math.random() - 0.5) * 0.8; cuStartPower(); cuThrow(cuV0(cuDrawP() + (Math.random() - 0.5) * 0.12)); }
+        cuFrame(1 / 60, i * 1000 / 60, true);
+        if (CU.stones.some(s => !isFinite(s.x + s.z))) ok = false;
+      }
+      if (!ok || CU.phase !== 'end' || !CU.result || CU.stones.length !== CU_N * 2) bad.push(`${g}:${CU.phase}/${CU.stones.length}`);
+    }
+    return { pass: !bad.length, detail: bad.length ? '이상한 판 ' + bad.join(' ') : '6판 정상' };
+  });
+  fnClear(); cuClear(); PLAYER_MODEL = keepModel; $('#ovCount').hidden = true; $('#evMsg').hidden = true;
   T('선수 데이터 크기 ≤ 128KB', () => {
     const bin = rasterizeStrokes(makeStickFigure(37, { wob: 8 })), ex = extract(bin); ex.useColors = true;
     const n = JSON.stringify(charPayload(ex, '테스트')).length; return { pass: n <= CHAR_CAP, detail: `${(n / 1024).toFixed(1)}KB` };
