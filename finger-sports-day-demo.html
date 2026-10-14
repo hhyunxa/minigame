@@ -1915,8 +1915,8 @@ function drawCamTo(g, w, h) {
     if (run) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(8 * k, h - 16 * k, w - 16 * k, 8 * k); g.fillStyle = '#3aa0e0'; g.fillRect(8 * k, h - 16 * k, (w - 16 * k) * H.sw, 8 * k); }
   } else if (EVENT === 'fence' && view === 'race') {
     const H = FN.hand;
-    g.fillStyle = 'rgba(79,125,255,.2)'; g.fillRect(0, 0, w * 0.4, h); g.fillStyle = 'rgba(255,90,71,.2)'; g.fillRect(w * 0.6, 0, w * 0.4, h);
-    g.fillStyle = '#fff'; g.font = `bold ${13 * k}px "Gowun Dodum", sans-serif`; g.fillText('← 뒤로', 8 * k, 18 * k); g.fillText('앞으로 →', w - 64 * k, 18 * k);
+    g.fillStyle = 'rgba(79,125,255,.2)'; g.fillRect(0, 0, w * FN_MOVE, h); g.fillStyle = 'rgba(255,90,71,.2)'; g.fillRect(w * (1 - FN_MOVE), 0, w * FN_MOVE, h);
+    g.fillStyle = '#fff'; g.font = `bold ${13 * k}px "Gowun Dodum", sans-serif`; g.fillText('← 뒤로', 6 * k, 18 * k); g.fillText('앞으로 →', w - 62 * k, 18 * k); g.fillText('멈춤', w / 2 - 14 * k, 18 * k);
     chain([5, 6, 7, 8], 'rgba(255,255,255,.6)', 2); chain([9, 10, 11, 12], 'rgba(255,255,255,.6)', 2);
     const fist = H.n <= 1, [px, py] = [(w - (lm[0].x + lm[9].x) / 2 * w), (lm[0].y + lm[9].y) / 2 * h];
     dot(px, py, fist ? '#ffc93c' : '#ff5a47', 9);
@@ -2191,7 +2191,7 @@ const START_TXT = {
   },
   fence: {
     lede: '5점을 먼저 내면 이겨요. 노란 거리 안으로 다가가서 찌르세요. 상대가 팔을 뒤로 당기면(찌르기 준비) 막고, 막은 직후에 찌르면 빠른 반격이 돼요.', cam: '웹캠으로 겨루기', key: '키보드로 겨루기',
-    howto: '<div><strong>손으로 겨루기</strong><span>손을 화면 오른쪽에 두면 앞으로, 왼쪽에 두면 뒤로 가요. 편 손을 카메라 쪽으로 쭉 내밀면 찌르고, 주먹을 꽉 쥐면 막아요.</span></div><div><strong>키보드로 겨루기</strong><span>A · D(또는 ← →)로 앞뒤로 움직이고, J(또는 Space)로 찌르고, K(또는 F)로 막아요. 막기를 마구 누르면 빈틈이 생겨요.</span></div>',
+    howto: '<div><strong>손으로 겨루기</strong><span>손을 화면 오른쪽 끝에 두면 앞으로, 왼쪽 끝에 두면 뒤로 가요(가운데는 멈춤). 편 손을 카메라 쪽으로 쭉 내밀면 찌르고, 주먹을 꽉 쥐면 막아요.</span></div><div><strong>키보드로 겨루기</strong><span>A · D(또는 ← →)로 앞뒤로 움직이고, J(또는 Space)로 찌르고, K(또는 F)로 막아요. 막기를 마구 누르면 빈틈이 생겨요.</span></div>',
   },
   curl: {
     lede: 'CPU와 돌 4개씩 번갈아 던지고, 마지막 돌은 내가 던져요. 하우스 가운데(티)에 더 가까운 돌이 점수예요. 돌은 회전 방향으로 휘고, 스위핑하면 더 멀리, 덜 휘어 가요.', cam: '웹캠으로 던지기', key: '키보드로 던지기',
@@ -3408,6 +3408,8 @@ function tgEnd(w) {
    손: 손을 화면 오른쪽 = 앞으로, 왼쪽 = 뒤로 / 손을 카메라 쪽으로 쭉 내밀기 = 찌르기 / 편 손 → 주먹 = 막기
    ========================================================= */
 const FN_X = -80, FN_Z = 40, FN_HALF = 7, FN_HOME = 2, FN_REACH = 2.1, FN_MIN = 0.9, FN_WIN = 5, FN_SW = 0.88, FN_LUNGE = 0.55;
+// 손 이동 구역: 카메라 화면 양쪽 끝에서 이 비율만큼만 앞뒤 이동, 가운데는 멈춤
+const FN_MOVE = 0.25;
 const FN = { group: new THREE.Group(), phase: 'off', mode: 'key', f: [], score: [0, 0], lamp: [false, false], t: 0, readyAt: 0, allezHide: 0, touchT: 0, keys: { fwd: false, back: false }, hand: { t: 0, mv: 0, n: 4, open: false, hist: [], grow: 1, lastThr: 0, lastPar: 0 }, winner: -1, spark: null, sparkT: 9 };
 (function buildPiste() {
   const G = FN.group; G.visible = false; R.scene.add(G);
@@ -3622,7 +3624,10 @@ function fnKey(e, down) {
 function fnHand(lm, now) {
   const d = (a, b) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y), s = d(0, 9) || 0.1, H = FN.hand;
   const n = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([t, q]) => d(t, 0) > d(q, 0) * 1.1).length, px = 1 - (lm[0].x + lm[9].x) / 2;
-  H.t = now; H.n = n; H.px = px; H.mv = px > 0.6 ? 1 : px < 0.4 ? -1 : 0;
+  H.t = now; H.n = n; H.px = px;
+  // 경계에서 떨리지 않게: 한번 움직이기 시작하면 경계 안쪽으로 조금 더 들어와야 멈춘다
+  const edge = Math.abs(px - 0.5), side = Math.sign(px - 0.5);
+  H.mv = edge > 0.5 - FN_MOVE ? side : H.mv === side && edge > 0.5 - FN_MOVE - 0.04 ? side : 0;
   if (n >= 3) H.open = true;
   else if (n <= 1 && H.open && now - H.lastThr > 250) { H.open = false; H.lastPar = now; fnInput('parry'); }
   H.hist = H.hist.filter(h => now - h.t < 300); H.hist.push({ t: now, s });
