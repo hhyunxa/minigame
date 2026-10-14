@@ -4243,6 +4243,8 @@ function netJoin() {
   if (!PLAYER_MODEL) { show('draw'); return; }
   const code = $('#netCode').value.replace(/\D/g, '');
   if (code.length !== 6) { netMsg('6자리 숫자 코드를 입력해 주세요.'); return; }
+  // 같은 화면에서 내 방 코드로 참가하면 내 방이 먼저 닫혀 버린다 → 막고 안내만 한다
+  if (NET.role === 'host' && code === NET.code) { netMsg(`${code}는 이 화면에서 만든 방이에요. 상대는 다른 노트북(또는 다른 브라우저 창)에서 이 코드로 참가해야 해요. 이 화면은 그대로 두세요.`); return; }
   netReset(); NET.role = 'guest'; NET.code = code; $('#netFallback').hidden = true;
   const peer = new Peer(peerOpts()); NET.peer = peer; netPill('연결 중…'); netMsg('');
   NET.joinTimer = setTimeout(() => { if (!NET.helloOk) { netReset(true); netMsg('연결 실패 — 10초 안에 방에 들어가지 못했어요.'); $('#netFallback').hidden = false; } }, NET_CONNECT_MS);
@@ -4252,7 +4254,7 @@ function netJoin() {
 function netError(e) {
   const t = e && e.type;
   if (t === 'unavailable-id' && NET.role === 'host') { netHost(); return; } // 코드가 겹치면 새 코드
-  const msg = t === 'peer-unavailable' ? '방을 찾지 못했어요. 코드를 다시 확인해 주세요.'
+  const msg = t === 'peer-unavailable' ? '방을 찾지 못했어요. 코드가 맞는지, 방을 만든 쪽 화면이 닫히거나 새로고침되지 않았는지 확인해 주세요.'
     : t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed' ? '연결 서버에 닿지 못했어요.'
       : t === 'browser-incompatible' ? '이 브라우저는 온라인 대결을 지원하지 않아요.' : '연결 오류가 났어요.';
   const inRace = ONLINE.on && RACE && RACE.online;
