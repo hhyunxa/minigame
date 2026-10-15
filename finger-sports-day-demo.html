@@ -347,6 +347,14 @@ th.num{text-align:right}
 .net-reveal{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;animation:netIn .5s ease-out}
 .net-reveal figure{margin:0;text-align:center}.net-reveal img{width:140px;height:140px;background:#fff;border:2px solid var(--ink);border-radius:10px;image-rendering:pixelated}
 .net-reveal figcaption{font-weight:700;margin-top:4px}.net-vs{font-size:28px}
+.net-members{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;width:100%}
+.net-members figure{margin:0;text-align:center;width:96px}.net-members img{width:88px;height:88px;background:#fff;border:2px solid var(--ink);border-radius:10px}
+.net-members figcaption{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-board{right:16px;bottom:18px;width:210px;background:rgba(255,255,255,.95);border:2px solid var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;display:flex;flex-direction:column;gap:2px}
+.net-board strong{font-size:12px;color:var(--muted)}
+.net-board div{display:flex;justify-content:space-between;gap:8px}.net-board div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-board div em{font-style:normal;font-family:var(--mono);white-space:nowrap}.net-board div.me{font-weight:700}
+.ev-net{font-size:12px;color:var(--muted);margin:0}
 .res-duo{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}.res-duo figure{margin:0;text-align:center}.res-duo img{width:96px;height:96px;background:#fff;border:2px solid var(--ink);border-radius:8px}
 .res-duo figure.win img{border-color:#e0a000;box-shadow:0 0 0 3px var(--yellow)}
 @keyframes netIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
@@ -468,8 +476,8 @@ window.LOCAL_VENDOR = /^https?:$/.test(location.protocol);
     <h1>종목을 골라주세요</h1>
     <p class="lede">종목마다 손동작이 달라요. 손가락 다섯 개를 하나씩 쓰지 않고, 누구나 아는 손짓을 씁니다.</p>
     <div class="netcard" id="netCard">
-      <div class="net-head"><h2>온라인 대결 <small>100m 달리기 · 각자 노트북에서</small></h2><span class="net-pill" id="netPill">연결 안 됨</span></div>
-      <p class="lede" style="margin:0">내가 그린 선수로 친구와 한 판. 한 사람이 방을 만들고, 다른 사람이 6자리 코드로 들어와요.</p>
+      <div class="net-head"><h2>온라인 대결 <small>모든 종목 · 최대 8명 · 각자 노트북에서</small></h2><span class="net-pill" id="netPill">연결 안 됨</span></div>
+      <p class="lede" style="margin:0">내가 그린 선수로 친구들과 한 판. 한 사람이 방을 만들고, 나머지가 6자리 코드로 들어와요. 방장이 종목을 고르면 모두 함께 시작해요.</p>
       <div class="row" id="netCtl">
         <button class="btn primary" id="btnNetHost">방 만들기</button>
         <input class="net-code" id="netCode" inputmode="numeric" maxlength="6" placeholder="6자리 코드">
@@ -482,10 +490,8 @@ window.LOCAL_VENDOR = /^https?:$/.test(location.protocol);
         <div class="row"><button class="btn small" id="btnNetRetry">다시 시도</button></div>
       </div>
       <div class="net-reveal" id="netReveal" hidden>
-        <figure><img id="netMeImg" alt=""><figcaption id="netMeName">나</figcaption></figure>
-        <b class="net-vs">VS</b>
-        <figure><img id="netOppImg" alt=""><figcaption id="netOppName">상대</figcaption></figure>
-        <div class="row" style="width:100%;justify-content:center"><button class="btn primary" id="btnNetGo">경기장 입장 →</button><button class="btn small" id="btnNetLeave">나가기</button></div>
+        <div class="net-members" id="netMembers"></div>
+        <div class="row" style="width:100%;justify-content:space-between;align-items:center"><span class="lede" id="netHint" style="font-size:14px"></span><button class="btn small" id="btnNetLeave">방 나가기</button></div>
       </div>
     </div>
     <div class="ev-grid" id="evGrid"></div>
@@ -576,6 +582,7 @@ window.LOCAL_VENDOR = /^https?:$/.test(location.protocol);
     <div class="cu-meter"><small><span>스위핑 (던진 뒤 연타 · 손 흔들기)</span><em id="cuSwTxt">0%</em></small><div class="balbar"><i id="cuSw"></i></div></div>
     <div class="cu-spin" id="cuSpin"></div>
   </div>
+  <div class="hud net-board" id="netBoard" hidden></div>
   <div class="hud hud-msg" id="evMsg" hidden></div>
   <div class="hud hud-hint" id="hudHint" hidden></div>
   <div class="hud hud-prog" id="hudProg"></div>
@@ -588,6 +595,7 @@ window.LOCAL_VENDOR = /^https?:$/.test(location.protocol);
       <div><h1 id="stTitle">100m 달리기</h1><p class="lede" id="stLede">결승선까지 먼저 들어오면 이겨요. 박자가 흐트러지면 휘청거리다 넘어집니다.</p></div>
       <ul class="lineup" id="lineup"></ul>
       <div class="vs-seg" id="tugVs" hidden><button class="btn small on" data-vs="1p">혼자 · CPU 팀과 대결</button><button class="btn small" data-vs="2p">둘이서 · 한 화면에서 대결</button></div>
+      <div class="vs-seg" id="tugTeam" hidden><button class="btn small" data-team="0">🔵 파랑 팀으로</button><button class="btn small" data-team="1">🔴 빨강 팀으로</button></div>
       <div class="howto" id="howto">
         <div>
           <strong>손가락으로 달리기</strong>
@@ -1712,13 +1720,15 @@ function simTick(race) {
 }
 // 상대 선수: 받은 걸음 입력으로, 상대가 확정한 틱까지만 같은 시뮬레이션을 돌린다 (R3)
 function advanceRemote(race) {
-  const R = race.racers.find(r => r.kind === 'remote'); if (!R) return;
-  const q = race.remoteSteps, limit = Math.min(race.netConfirmed, race.tick);
-  while (R.simTick < limit) {
-    const t = R.simTick;
-    while (race.remoteIdx < q.length && q[race.remoteIdx][0] <= t) { const [st, k] = q[race.remoteIdx++]; if (st === t) doStep(R, t, k); }
-    simRacer(R, { tick: t, silent: race.silent, events: race.events });
-    R.simTick++;
+  for (const R of race.racers) {
+    if (R.kind !== 'remote') continue;
+    const src = R.net || race, q = src.remoteSteps, limit = Math.min(src.netConfirmed, race.tick);
+    while (R.simTick < limit) {
+      const t = R.simTick;
+      while (src.remoteIdx < q.length && q[src.remoteIdx][0] <= t) { const [st, k] = q[src.remoteIdx++]; if (st === t) doStep(R, t, k); }
+      simRacer(R, { tick: t, silent: race.silent, events: race.events });
+      R.simTick++;
+    }
   }
 }
 
@@ -1963,7 +1973,7 @@ function prepareRace() {
   updateHUD();
 }
 function esc(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-$('#btnBackConv').onclick = () => show('events');
+$('#btnBackConv').onclick = () => { if (ONLINE.on) { onlineLobby(); return; } show('events'); };
 const HANDCHECK = { active: false, ok: 0 };
 const HAND_TXT = {
   run: '손을 카메라 앞에 두고, 검지와 중지를 아래로 펴서 걷듯이 움직여보세요.',
@@ -1979,7 +1989,8 @@ function beginEvent(mode) {
   sfx.unlock();
   $('#ovStart').hidden = true; $('#ovHand').hidden = true;
   $('#hudCam').hidden = mode !== 'cam'; $('#fmBox').hidden = ['arch', 'orch', 'swim', 'tug', 'fence', 'curl'].includes(EVENT);
-  if (EVENT === 'run') { if (!RACE) return; RACE.mode = mode; RACE.rec.mode = mode; reMode(mode); if (RACE.online) onlineReady(mode); else startCountdown(); }
+  if (ONLINE.on) { if (EVENT === 'run' && RACE) { RACE.mode = mode; RACE.rec.mode = mode; reMode(mode); } onlineReady(mode); return; }
+  if (EVENT === 'run') { if (!RACE) return; RACE.mode = mode; RACE.rec.mode = mode; reMode(mode); startCountdown(); }
   else if (EVENT === 'hj') hjBegin(mode);
   else if (EVENT === 'orch') orBegin(mode);
   else if (EVENT === 'swim') swBegin(mode);
@@ -2103,8 +2114,8 @@ function endRace() {
   LAST_REC = JSON.parse(JSON.stringify(race.rec));
 }
 let LAST_REC = null;
-$('#btnAgain').onclick = () => startEvent(EVENT);
-$('#btnOtherEv').onclick = () => { closeReplay(); leaveOnline(); show('events'); };
+$('#btnAgain').onclick = () => { if (ONLINE.on) onlineAgain(); else startEvent(EVENT); };
+$('#btnOtherEv').onclick = () => { if (ONLINE.on) { onlineLobby(); return; } closeReplay(); show('events'); };
 $('#btnNewChar').onclick = () => { closeReplay(); leaveOnline(); show('draw'); };
 
 /* 리플레이 */
@@ -2215,8 +2226,10 @@ function bestText(ev) {
   const r = loadRecs('fsd-arch'); return r.length ? `내 최고 ${r[0].total}점` : '아직 기록 없음';
 }
 function renderEvents() {
-  $('#evGrid').innerHTML = Object.entries(EV_DEFS).map(([k, d]) => `<article class="ev"><div class="ev-art" style="--c:${d.color}">${EV_ART[k]}</div><div class="ev-body"><h2>${d.name}<span class="pri">${d.pri}</span></h2><p class="lede" style="margin:0">${d.desc}</p><dl class="ev-ctl"><dt>손동작</dt><dd>${d.gesture}</dd><dt>키보드</dt><dd>${d.key}</dd></dl><p class="ev-best">${bestText(k)}</p><button class="btn primary" data-ev="${k}">${d.name} 시작</button></div></article>`).join('');
-  $$('#evGrid [data-ev]').forEach(b => { b.onclick = () => { leaveOnline(); startEvent(b.dataset.ev); }; });
+  const net = NET.helloOk, n = NET.order.length, host = NET.role === 'host';
+  const btn = (k, d) => { if (!net) return `<button class="btn primary" data-ev="${k}">${d.name} 시작</button>`; const [a, b] = EV_NET[k], ok = n >= a && n <= b; return !host ? `<button class="btn" data-ev="${k}" disabled>방장이 골라요</button>` : ok ? `<button class="btn primary" data-ev="${k}">온라인 ${d.name} 시작</button>` : `<button class="btn" data-ev="${k}" disabled>${a === b ? a : a + '~' + b}명일 때 할 수 있어요</button>`; };
+  $('#evGrid').innerHTML = Object.entries(EV_DEFS).map(([k, d]) => `<article class="ev"><div class="ev-art" style="--c:${d.color}">${EV_ART[k]}</div><div class="ev-body"><h2>${d.name}<span class="pri">${d.pri}</span></h2><p class="lede" style="margin:0">${d.desc}</p><dl class="ev-ctl"><dt>손동작</dt><dd>${d.gesture}</dd><dt>키보드</dt><dd>${d.key}</dd></dl><p class="ev-best">${bestText(k)}</p><p class="ev-net">온라인 ${k === 'tug' ? '최대 4:4' : EV_NET[k][0] === EV_NET[k][1] ? '1:1' : '최대 ' + EV_NET[k][1] + '명'}</p>${btn(k, d)}</div></article>`).join('');
+  $$('#evGrid [data-ev]').forEach(b => { b.onclick = () => { if (NET.helloOk) { if (NET.role === 'host') netAll({ type: 'ev', ev: b.dataset.ev }); return; } startEvent(b.dataset.ev); }; });
 }
 let RUN_HOWTO = null;
 function clearRunMeshes() { for (const m of R.meshes) { R.scene.remove(m.holder); m.mesh.dispose(); } R.meshes = []; }
@@ -2250,6 +2263,8 @@ function startEvent(ev) {
   if (ev === 'run') prepareRace(); else if (ev === 'hj') hjPrepare(); else if (ev === 'orch') orPrepare(); else if (ev === 'swim') swPrepare(); else if (ev === 'tug') tgPrepare(); else if (ev === 'fence') fnPrepare(); else if (ev === 'curl') cuPrepare(); else arPrepare();
   $('#ovStart').hidden = false; $('#ovResult').hidden = true; $('#ovHand').hidden = true; $('#ovCount').hidden = true; $('#startMsg').textContent = '';
   $('#hudCam').hidden = true; $('#hudHint').hidden = true; $('#evMsg').hidden = true;
+  $('#btnBackConv').textContent = ONLINE.on ? (NET.role === 'host' ? '← 방으로 (모두 함께)' : '← 방으로') : '← 종목 다시 고르기'; $('#tugTeam').hidden = true; $('#netBoard').hidden = true;
+  if (ONLINE.on) { $('#tugVs').hidden = true; $('#startMsg').textContent = '조작 방식을 고르면 준비 완료! 모두 준비되면 동시에 시작해요.'; onlineLineup(); }
 }
 function camTo(pos, look, dt, speed = 5) {
   if (!R.camPos || !R.camLook) { R.camPos = pos.clone(); R.camLook = look.clone(); }
@@ -2415,6 +2430,7 @@ function hjDecide() {
     why = (HJ.reason || (HJ.barDown ? '바를 건드렸어요' : '바 아래로 지나갔어요')) + timing + (HJ.fails >= 3 ? ' · 3번 실패로 경기 끝' : ` · 이 높이 남은 기회 ${3 - HJ.fails}번`);
   }
   evMsg(why, 2); HJ.phase = 'result'; HJ.resT = 0;
+  onlineLive(`${HJ.best ? HJ.best.toFixed(2) + 'm' : '-'} · ${row.h.toFixed(2)} ${row.m}`);
 }
 function hjFrame(dt, now) {
   const r = HJ.r; if (!r || !HJ.holder) return;
@@ -2455,8 +2471,9 @@ function hjEnd() {
   const field = [{ name, h: best, me: true }, { name: '삐죽이', h: 1.90 }, { name: '꼬물이', h: 1.70 }, { name: '동글이', h: 1.50 }].sort((a, b) => b.h - a.h);
   const rank = field.findIndex(f => f.me) + 1;
   let recs = loadRecs('fsd-hj'), mine = null;
-  if (best > 0) { mine = { name, h: best, mode: HJ.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.h - a.h); recs = recs.slice(0, 10); saveRecs('fsd-hj', recs); }
-  showResult({
+  if (best > 0 && !ONLINE.on) { mine = { name, h: best, mode: HJ.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.h - a.h); recs = recs.slice(0, 10); saveRecs('fsd-hj', recs); }
+  const fails = HJ.sheet.reduce((a, x) => a + (x.m.match(/X/g) || []).length, 0);
+  const o = {
     medal: rank + '위', medalBg: MEDAL_BG[rank - 1],
     main: best ? `${best.toFixed(2)}<em>m</em>` : '기록 없음', sub: `점프 ${HJ.jumps}번 · 시기 ${HJ.sheet.reduce((s, x) => s + x.m.length, 0)}번`,
     verify: `<strong>기록지</strong><span class="mono">${HJ.sheet.filter(s => s.m).map(s => `${s.h.toFixed(2)} ${s.m}`).join(' · ') || '-'}</span>`,
@@ -2464,7 +2481,9 @@ function hjEnd() {
     tbl: '<tr><th>순위</th><th>선수</th><th class="num">기록</th></tr>' + field.map((f, i) => `<tr><td>${i + 1}</td><td>${f.me ? '<b>나 · ' + esc(f.name) + '</b>' : esc(f.name) + ' <small class="lede">CPU</small>'}</td><td class="num">${f.h ? f.h.toFixed(2) + 'm' : '-'}</td></tr>`).join(''),
     rank: rankRows(recs, mine, r => r.h.toFixed(2) + 'm'),
     info: '도움닫기가 빠를수록, 바 앞 2m에 가까이서 뛸수록 높이 떠요.', again: '다시 뛰기',
-  });
+  };
+  // 온라인: 같은 높이면 실패가 적은 쪽이 위
+  showResult(ONLINE.on ? onlineResult(o, best * 1000 - fails, best ? `${best.toFixed(2)}m · 실패 ${fails}` : '기록 없음') : o);
 }
 function rankRows(recs, mine, fmt) {
   return '<tr><th>순위</th><th>선수</th><th>조작</th><th class="num">기록</th></tr>' + (recs.length ? recs.slice(0, 5).map((r, i) => `<tr${mine && r.at === mine.at ? ' style="background:#fff6d6"' : ''}><td>${i + 1}</td><td>${esc(r.name)}</td><td>${r.mode === 'cam' ? '손가락' : '키보드'}</td><td class="num">${fmt(r)}</td></tr>`).join('') : '<tr><td colspan="4" class="lede">아직 기록이 없어요</td></tr>');
@@ -2588,6 +2607,7 @@ function arLabel(s) { return s.X ? 'X' : s.v ? String(s.v) : 'M'; }
 function arCard() {
   const cells = []; for (let i = 0; i < 6; i++) { const s = AR.scores[i]; cells.push(`<div class="${i === AR.scores.length && AR.phase !== 'end' ? 'cur' : ''}">${s ? arLabel(s) : ''}</div>`); }
   $('#arCard').innerHTML = cells.join('') + `<div class="tot">${AR.scores.reduce((a, s) => a + s.v, 0)}점</div>`;
+  onlineLive(`${AR.scores.reduce((a, s) => a + s.v, 0)}점 · ${AR.scores.length}/6발`);
 }
 const scg = $('#scopeCv').getContext('2d');
 function drawScope() {
@@ -2649,16 +2669,17 @@ function arEnd() {
   const cpu = [['삐죽이', 0.09], ['동글이', 0.14], ['꼬물이', 0.2]].map(([n, sd]) => { let t = 0, x = 0; for (let i = 0; i < 6; i++) { const r = Math.hypot(gauss() * sd, gauss() * sd); const v = r <= FACE_R ? 10 - Math.floor(r / RING) : 0; t += v; if (r < RING / 2) x++; } return { name: n, total: t, x }; });
   const field = [{ name, total, x: xs, me: true }, ...cpu].sort((a, b) => b.total - a.total || b.x - a.x);
   const rank = field.findIndex(f => f.me) + 1;
-  let recs = loadRecs('fsd-arch'); const mine = { name, total, x: xs, mode: AR.mode, at: Date.now() };
-  recs.push(mine); recs.sort((a, b) => b.total - a.total || b.x - a.x); recs = recs.slice(0, 10); saveRecs('fsd-arch', recs);
-  showResult({
+  let recs = loadRecs('fsd-arch'); const mine = ONLINE.on ? null : { name, total, x: xs, mode: AR.mode, at: Date.now() };
+  if (mine) { recs.push(mine); recs.sort((a, b) => b.total - a.total || b.x - a.x); recs = recs.slice(0, 10); saveRecs('fsd-arch', recs); }
+  const o = {
     medal: rank + '위', medalBg: MEDAL_BG[rank - 1],
     main: `${total}<em>점 / 60</em>`, sub: `10점 ${tens}발 · 그중 X ${xs}발`,
     verify: `<strong>점수표</strong><span class="mono">${AR.scores.map(arLabel).join(' · ')}</span>`,
     tblTitle: '이번 엔드', tbl: '<tr><th>순위</th><th>선수</th><th class="num">점수</th><th class="num">X</th></tr>' + field.map((f, i) => `<tr><td>${i + 1}</td><td>${f.me ? '<b>나 · ' + esc(f.name) + '</b>' : esc(f.name) + ' <small class="lede">CPU</small>'}</td><td class="num">${f.total}점</td><td class="num">${f.x}</td></tr>`).join(''),
     rank: rankRows(recs, mine, r => r.total + '점'),
     info: '같은 점수면 정중앙 X 개수가 많은 쪽이 이겨요.', again: '다시 쏘기',
-  });
+  };
+  showResult(ONLINE.on ? onlineResult(o, total + xs * 0.01, `${total}점 · X ${xs}`) : o);
 }
 {
   const rc = R.renderer.domElement; let ptr = null;
@@ -2734,6 +2755,7 @@ function isPlaying() {
   return OR.phase === 'intro' || OR.phase === 'play';
 }
 function togglePause() {
+  if (ONLINE.on) return false;
   if (!PAUSED && !isPlaying()) return false;
   PAUSED = !PAUSED;
   if (EVENT === 'orch' && OR.ac) OR.ac[PAUSED ? 'suspend' : 'resume']();
@@ -3003,6 +3025,7 @@ function orHud() {
   $('#omTmpBand').style.left = tp(S.bpm - 12) + '%'; $('#omTmpBand').style.width = (tp(S.bpm + 12) - tp(S.bpm - 12)) + '%';
   const done = OR.acc.reduce((a, x) => a + x.n, 0), got = OR.acc.reduce((a, x) => a + x.s, 0);
   $('#orScore').textContent = done > 0.5 ? Math.round(got / done * 100) + '%' : '-';
+  if (OR.phase === 'play') onlineLive(`${done > 0.5 ? Math.round(got / done * 100) : 0}점 · ${k + 1}/${OR_SECTIONS.length}악장`);
   OR_SECTIONS.forEach((x, i) => { const el = $('#orSeg' + i); if (!el) return; const st = i ? sectionEnd(i - 1) : 0, f = OR.phase === 'play' || OR.phase === 'end' ? clamp((OR.t - st) / x.dur, 0, 1) : 0; el.firstChild.style.width = f * 100 + '%'; el.classList.toggle('cur', OR.phase === 'play' && i === k); });
 }
 function orEnd() {
@@ -3010,15 +3033,16 @@ function orEnd() {
   const tot = OR.acc.reduce((a, x) => a + x.s, 0), dur = OR.acc.reduce((a, x) => a + x.n, 0) || 1, score = Math.round(tot / dur * 100);
   const grade = score >= 85 ? 'S' : score >= 70 ? 'A' : score >= 50 ? 'B' : 'C';
   const avgB = Math.round(OR.acc.reduce((a, x) => a + x.bpm, 0) / dur), avgV = Math.round(OR.acc.reduce((a, x) => a + x.vol, 0) / dur * 100), name = playerName();
-  let recs = loadRecs('fsd-orch'); const mine = { name, score, mode: OR.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.score - a.score); recs = recs.slice(0, 10); saveRecs('fsd-orch', recs);
+  let recs = loadRecs('fsd-orch'); const mine = ONLINE.on ? null : { name, score, mode: OR.mode, at: Date.now() }; if (mine) { recs.push(mine); recs.sort((a, b) => b.score - a.score); recs = recs.slice(0, 10); saveRecs('fsd-orch', recs); }
   const rows = OR_SECTIONS.map((x, i) => { const a = OR.acc[i], n = a.n || 1; return `<tr><td>${i + 1}</td><td>${x.name} <small class="lede">${x.mark}</small></td><td class="num">${Math.round(a.bpm / n)} BPM · ${Math.round(a.vol / n * 100)}%</td><td class="num">${Math.round(a.s / n * 100)}점</td></tr>`; }).join('');
-  showResult({
+  const o = {
     medal: grade, medalBg: MEDAL_BG[{ S: 0, A: 1, B: 2, C: 3 }[grade]],
     main: `${score}<em>점 / 100</em>`, sub: `평균 빠르기 ${avgB} BPM · 평균 소리 크기 ${avgV}%`,
     verify: `<strong>${{ S: '박수갈채! 지휘자 데뷔 성공', A: '관객이 일어나 박수를 쳐요', B: '조금만 더 악보를 따라가면 돼요', C: '오케스트라가 헷갈려해요' }[grade]}</strong><span>빠르기는 목표 ±12 BPM, 크기는 ±10% 안이면 만점이에요.</span>`,
     tblTitle: '악장별 지휘', tbl: '<tr><th>악장</th><th>지시</th><th class="num">내 지휘</th><th class="num">점수</th></tr>' + rows,
     rank: rankRows(recs, mine, r => r.score + '점'), info: '음악은 베토벤 「환희의 송가」(저작권이 끝난 곡)를 이 게임이 직접 연주한 거예요.', again: '다시 지휘하기',
-  });
+  };
+  showResult(ONLINE.on ? onlineResult(o, score, `${score}점 (${grade})`) : o);
 }
 
 /* =========================================================
@@ -3095,16 +3119,19 @@ function swClear() {
 }
 function swPrepare() {
   swClear();
-  const defs = [{ model: PLAYER_MODEL, name: playerName(), color: '#16181d', me: true },
+  // 온라인: 레인 = 방 명단 순서(모든 화면에서 같게), 배열 첫 칸은 항상 나
+  const ids = ONLINE.on ? (ONLINE.started ? ONLINE.members : NET.order).slice(0, 4) : [];
+  const defs = ONLINE.on ? [NET.myId, ...ids.filter(id => id !== NET.myId)].map(id => { const m = NET.members.get(id) || {}, lane = ids.indexOf(id); return id === NET.myId ? { model: PLAYER_MODEL, name: playerName(), color: '#16181d', me: true, id, lane } : { model: m.model || BOT_DEFS[0].model, name: m.name || '선수', color: RUN_COLORS[lane], id, lane, remote: true }; })
+    : [{ model: PLAYER_MODEL, name: playerName(), color: '#16181d', me: true },
     ...BOT_DEFS.map((b, i) => ({ model: b.model, name: b.name, color: b.color, rate: [3.0, 2.7, 3.3][i], br: [0.32, 0.45, 0.24][i], brT: [1.5, 1.3, 1.8][i] }))];
   SW.sw = defs.map((d, i) => {
     const holder = new THREE.Group(), body = new THREE.Group(), mesh = new CharMesh(d.model, d.color);
     body.add(mesh.group); body.rotation.z = -Math.PI / 2; holder.add(body);
     const foam = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.0), new THREE.MeshBasicMaterial({ map: SW_FOAM_TEX, transparent: true, depthWrite: false, opacity: 0.2 })); foam.rotation.x = -Math.PI / 2; foam.renderOrder = 3; holder.add(foam);
-    const lab = d.me ? nameSprite('나 · ' + d.name, '#ffc93c', '#16181d') : nameSprite(d.name + ' CPU', '#ffffff', d.color); holder.add(lab);
+    const lab = d.me ? nameSprite('나 · ' + d.name, '#ffc93c', '#16181d') : nameSprite(d.name + (d.remote ? '' : ' CPU'), '#ffffff', d.color); holder.add(lab);
     R.scene.add(holder);
     const M = d.model, reach = M.len.torso + Math.hypot(M.headVec.x, M.headVec.y) + M.headR, legs = Math.max(M.len.thL + M.len.shL, M.len.thR + M.len.shR);
-    return { ...d, holder, body, mesh, foam, lab, lane: i, x: reach + legs + 0.1, v: 0, o2: 1, ph: 0, phT: 0, breath: 0, breaths: 0, lastStroke: -9, strokes: [], finish: null, reach, next: 0, resting: false, restUntil: 0 };
+    return { ...d, holder, body, mesh, foam, lab, lane: d.lane ?? i, x: reach + legs + 0.1, v: 0, o2: 1, ph: 0, phT: 0, breath: 0, breaths: 0, lastStroke: -9, strokes: [], finish: null, reach, next: 0, resting: false, restUntil: 0 };
   });
   Object.assign(SW, { phase: 'off', mode: 'key', t: 0, lastKey: null, acc: 0, prevA: null, hist: [], trail: [], endT: null });
   $('#lineup').innerHTML = SW.sw.map((r, i) => `<li><i style="background:${r.me ? '#ffc93c' : r.color};border:1.5px solid #16181d"></i>${r.me ? '나 · ' + esc(r.name) : esc(r.name)}<small>${i + 1}레인${r.me ? '' : ' · CPU'}</small></li>`).join('');
@@ -3113,12 +3140,19 @@ function swPrepare() {
 }
 function swBegin(mode) {
   SW.mode = mode; SW.phase = 'count'; const tok = SW.tok;
-  countdown(() => tok === SW.tok && EVENT === 'swim', () => {
-    SW.phase = 'race'; SW.t = 0;
-    // 손으로 원 그리기는 키보드보다 느려서 웹캠일 때는 CPU도 조금 천천히 젓는다
-    for (const s of SW.sw) { s.v = 1.9; s.lastStroke = 0; s.next = 0.3 + Math.random() * 0.3; if (!s.me) s.rateNow = s.rate * (mode === 'cam' ? 0.85 : 1); }
-    evMsg(mode === 'cam' ? '손으로 원을 그려 헤엄쳐요! 숨이 차면 손을 잠깐 멈춰요' : 'F · J를 번갈아! 숨이 차면 잠깐 멈춰요', 3);
-  });
+  countdown(() => tok === SW.tok && EVENT === 'swim', () => swStart(mode));
+}
+function swStart(mode) {
+  SW.mode = mode; SW.phase = 'race'; SW.t = 0; SW.netAt = 0;
+  // 손으로 원 그리기는 키보드보다 느려서 웹캠일 때는 CPU도 조금 천천히 젓는다
+  for (const s of SW.sw) { s.v = 1.9; s.lastStroke = 0; s.next = 0.3 + Math.random() * 0.3; if (!s.me && !s.remote) s.rateNow = s.rate * (mode === 'cam' ? 0.85 : 1); }
+  evMsg(mode === 'cam' ? '손으로 원을 그려 헤엄쳐요! 숨이 차면 손을 잠깐 멈춰요' : 'F · J를 번갈아! 숨이 차면 잠깐 멈춰요', 3);
+}
+// 온라인: 다른 선수 위치 받기(0.1초마다)
+function swNet(from, m) {
+  const s = SW.sw.find(x => x.id === from); if (!s || SW.phase === 'off') return;
+  s.x = m.x; s.v = m.v; s.phT = m.phT; s.breath = m.br; s.strokeN = m.n; s.breaths = m.b;
+  if (m.fin !== null && s.finish === null) { s.finish = m.fin; feed(`${s.name} 터치 · ${s.finish.toFixed(2)}초`); }
 }
 function swStroke(s) {
   if (SW.phase !== 'race' || s.finish !== null) return;
@@ -3170,7 +3204,8 @@ function swFrame(dt, now) {
   if (race) SW.t += dt;
   SW.waterTex.offset.x = (now / 1000 * 0.02) % 1;
   for (const s of SW.sw) {
-    if (race && s.finish === null) {
+    if (race && s.finish === null && s.remote) { if (!s.left) s.x = Math.min(SW_LEN, s.x + s.v * dt); }
+    else if (race && s.finish === null) {
       if (!s.me) {
         const sprint = s.x > SW_LEN - 7 && s.o2 > 0.05;
         if (s.resting) { if (SW.t > s.restUntil) s.resting = false; }
@@ -3193,8 +3228,10 @@ function swFrame(dt, now) {
     s.lab.position.set(s.reach * 0.3, 1.0, 0);
   }
   if (race) {
-    const me = SW.sw[0], all = SW.sw.every(s => s.finish !== null);
-    if (SW.endT !== null && (all || SW.t > SW.endT + 5)) swEnd();
+    const me = SW.sw[0], all = SW.sw.every(s => s.finish !== null || s.left);
+    // 온라인: 내 위치를 0.1초마다 보내고, 늦게 오는 선수를 조금 더(30초) 기다린다
+    if (ONLINE.on && now - (SW.netAt || 0) > 100) { SW.netAt = now; netBroadcast({ type: 'sw', g: ONLINE.g, x: me.x, v: me.v, phT: me.phT, br: me.breath, n: me.strokes.length, b: me.breaths, fin: me.finish }); }
+    if (SW.endT !== null && (all || SW.t > SW.endT + (ONLINE.on ? 30 : 5))) swEnd();
     else if (SW.t > 150) swEnd();
   }
   const P = SW.sw[0], px = SW_X + (P ? P.x : 0);
@@ -3215,12 +3252,14 @@ function swHud() {
 }
 function swEnd() {
   SW.phase = 'end'; $('#evMsg').hidden = true;
+  // 온라인: 마지막 상태(터치 기록)를 꼭 보낸다. 0.1초 간격 전송 사이에 끝나면 빠질 수 있어서
+  if (ONLINE.on) { const m = SW.sw[0]; netBroadcast({ type: 'sw', g: ONLINE.g, x: m.x, v: 0, phT: m.phT, br: m.breath, n: m.strokes.length, b: m.breaths, fin: m.finish }); }
   const me = SW.sw[0], field = SW.sw.map(s => ({ name: s.name, me: !!s.me, time: s.finish, x: s.x, breaths: s.breaths, strokes: s.strokes.length }))
     .sort((a, b) => (a.time ?? 1e9) - (b.time ?? 1e9) || b.x - a.x);
   const rank = field.findIndex(f => f.me) + 1, name = playerName();
   let recs = loadRecs('fsd-swim'), mine = null;
-  if (me.finish !== null) { mine = { name, time: me.finish, mode: SW.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => a.time - b.time); recs = recs.slice(0, 10); saveRecs('fsd-swim', recs); }
-  showResult({
+  if (me.finish !== null && !ONLINE.on) { mine = { name, time: me.finish, mode: SW.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => a.time - b.time); recs = recs.slice(0, 10); saveRecs('fsd-swim', recs); }
+  const o = {
     medal: rank + '위', medalBg: MEDAL_BG[rank - 1],
     main: me.finish !== null ? `${me.finish.toFixed(2)}<em>초</em>` : `${me.x.toFixed(1)}<em>m</em>`,
     sub: `팔 젓기 ${me.strokes.length}번 · 숨 ${me.breaths}번`,
@@ -3228,7 +3267,8 @@ function swEnd() {
     tblTitle: '이번 경기', tbl: '<tr><th>순위</th><th>선수</th><th class="num">기록</th><th class="num">숨</th></tr>' + field.map((f, i) => `<tr><td>${i + 1}</td><td>${f.me ? '<b>나 · ' + esc(f.name) + '</b>' : esc(f.name) + ' <small class="lede">CPU</small>'}</td><td class="num">${f.time !== null ? f.time.toFixed(2) + '초' : f.x.toFixed(1) + 'm'}</td><td class="num">${f.breaths}번</td></tr>`).join(''),
     rank: rankRows(recs, mine, r => r.time.toFixed(2) + '초'),
     info: '팔을 저을수록 숨이 줄고, 손을 멈추면 숨이 다시 차요.', again: '다시 헤엄치기',
-  });
+  };
+  showResult(ONLINE.on ? onlineResult(o, me.finish !== null ? 1000 - me.finish : me.x, me.finish !== null ? me.finish.toFixed(2) + '초' : me.x.toFixed(1) + 'm') : o);
 }
 
 /* =========================================================
@@ -3263,19 +3303,30 @@ function tgClear() {
 function tgPrepare() {
   tgClear();
   const mus = orMusicians(), two = TG.vs === '2p';
-  const left = [{ model: PLAYER_MODEL, color: '#16181d', me: true }, { model: mus[3].model, color: '#1f4fd1' }, { model: mus[4].model, color: '#1f4fd1' }];
-  const right = BOT_DEFS.map(b => ({ model: b.model, color: '#e2412f' }));
+  let left = [{ model: PLAYER_MODEL, color: '#16181d', me: true }, { model: mus[3].model, color: '#1f4fd1' }, { model: mus[4].model, color: '#1f4fd1' }];
+  let right = BOT_DEFS.map(b => ({ model: b.model, color: '#e2412f' }));
+  if (ONLINE.on) {
+    // 온라인: 방 명단의 팀대로(파랑 = 왼쪽, 빨강 = 오른쪽). 한 사람 힘은 팀 평균으로 계산한다
+    TG.vs = 'net';
+    const ids = ONLINE.started ? ONLINE.members : NET.order, mk = id => { const m = NET.members.get(id) || {}, me = id === NET.myId; return { id, me, name: me ? playerName() : m.name || '선수', model: me ? PLAYER_MODEL : m.model || BOT_DEFS[0].model, color: me ? '#16181d' : m.team ? '#e2412f' : '#1f4fd1' }; };
+    const teamOf = id => (NET.members.get(id) || {}).team ? 1 : 0;
+    left = ids.filter(id => teamOf(id) === 0).map(mk); right = ids.filter(id => teamOf(id) === 1).map(mk);
+  } else if (TG.vs === 'net') TG.vs = '1p';
   TG.teams = [left, right].map((list, k) => ({
     side: k ? 1 : -1, f: 0, jerk: 0, pulls: 0,
     members: list.map((d, i) => {
       const holder = new THREE.Group(), mesh = new CharMesh(d.model, d.color); holder.add(mesh.group);
       if (k) holder.rotation.y = Math.PI;
-      if (i === 0) { const lab = k ? nameSprite(two ? '2P 팀' : 'CPU 팀', '#ffffff', '#e2412f') : nameSprite(two ? '1P · ' + playerName() : '나 · ' + playerName(), '#ffc93c', '#16181d'); lab.position.set(0, 2.2, 0); holder.add(lab); }
-      R.scene.add(holder); return { ...d, holder, mesh, i, delay: i * 0.08 };
+      if (TG.vs === 'net') { const lab = d.me ? nameSprite('나 · ' + d.name, '#ffc93c', '#16181d') : nameSprite(d.name, '#ffffff', k ? '#e2412f' : '#1f4fd1'); lab.position.set(0, 2.2 + (i % 2) * 0.35, 0); holder.add(lab); }
+      else if (i === 0) { const lab = k ? nameSprite(two ? '2P 팀' : 'CPU 팀', '#ffffff', '#e2412f') : nameSprite(two ? '1P · ' + playerName() : '나 · ' + playerName(), '#ffc93c', '#16181d'); lab.position.set(0, 2.2, 0); holder.add(lab); }
+      R.scene.add(holder); return { ...d, holder, mesh, i, delay: i * 0.08, pulls: 0, jerk: 0 };
     }),
   }));
   Object.assign(TG, { phase: 'off', mode: 'key', X: 0, v: 0, t: 0, hands: {}, winner: null, cpuNext: 0, cpuSurge: 0 });
-  $('#tgNameL').textContent = two ? '1P 팀' : '우리 팀'; $('#tgNameR').textContent = two ? '2P 팀' : 'CPU 팀';
+  const myT = TG.vs === 'net' ? ((NET.members.get(NET.myId) || {}).team ? 1 : 0) : 0;
+  $('#tgNameL').textContent = TG.vs === 'net' ? `파랑 팀 ${TG.teams[0].members.length}명${myT === 0 ? ' (나)' : ''}` : two ? '1P 팀' : '우리 팀';
+  $('#tgNameR').textContent = TG.vs === 'net' ? `빨강 팀 ${TG.teams[1].members.length}명${myT === 1 ? ' (나)' : ''}` : two ? '2P 팀' : 'CPU 팀';
+  TG.myTeam = myT; TG.jerked = []; TG.netAt = 0; TG.netX = 0;
   tgHud();
 }
 $$('#tugVs [data-vs]').forEach(b => b.onclick = () => {
@@ -3285,18 +3336,52 @@ $$('#tugVs [data-vs]').forEach(b => b.onclick = () => {
 function tgBegin(mode) {
   TG.mode = mode; TG.phase = 'count'; const tok = TG.tok;
   if (mode === 'cam' && TG.vs === '2p') { tgSetHands(2); TG.twoHands = true; }
-  countdown(() => tok === TG.tok && EVENT === 'tug', () => {
-    TG.phase = 'pull'; TG.t = 0;
-    evMsg(mode === 'cam' ? '주먹을 꽉 쥐었다 펴기를 빠르게! 쥘 때마다 당겨요' : TG.vs === '2p' ? '1P는 F, 2P는 J를 연타!' : 'F · J · Space를 연타!', 3);
-  });
+  countdown(() => tok === TG.tok && EVENT === 'tug', () => tgStart(mode));
 }
-function tgPull(k) {
+function tgStart(mode) {
+  TG.mode = mode; TG.phase = 'pull'; TG.t = 0;
+  evMsg(mode === 'cam' ? '주먹을 꽉 쥐었다 펴기를 빠르게! 쥘 때마다 당겨요' : TG.vs === '2p' ? '1P는 F, 2P는 J를 연타!' : 'F · J · Space를 연타!', 3);
+}
+// 온라인: 내가 당김 → 방장이면 바로, 손님이면 방장에게 알리고 내 선수만 먼저 움직인다
+function tgMyPull() {
   if (TG.phase !== 'pull') return;
-  const T = TG.teams[k]; T.f += 1; T.jerk = 1; T.pulls++;
+  if (NET.role === 'host') { tgPull(TG.myTeam, NET.myId); return; }
+  netToHost({ type: 'tp', g: ONLINE.g });
+  const m = TG.teams[TG.myTeam].members.find(x => x.me); if (m) m.jerk = 1; if (sfxOn) sfx.step();
+}
+function tgNetPull(from) { const m = NET.members.get(from); if (m) tgPull(m.team ? 1 : 0, from); }
+// 손님: 방장이 보낸 줄 상태
+function tgNetState(m) {
+  if (TG.phase === 'off' || TG.phase === 'end') return;
+  TG.netX = m.X; TG.v = m.v; TG.t = m.t; TG.teams[0].f = m.f[0]; TG.teams[1].f = m.f[1];
+  for (const id of m.j) for (const T of TG.teams) { const x = T.members.find(q => q.id === id); if (x && !x.me) x.jerk = 1; }
+}
+function tgNetEnd(m) {
+  for (const T of TG.teams) for (const x of T.members) x.pulls = m.pulls[x.id] || 0;
+  TG.teams.forEach((T, k) => { T.pulls = m.tp[k]; });
+  TG.X = m.X; TG.t = m.t; tgEnd(m.w);
+}
+// 선수가 나가면 줄에서 뺀다. 한 팀이 비면(방장이 판정) 남은 팀 승리
+function tgNetLeft(id) {
+  for (const T of TG.teams) { const i = T.members.findIndex(x => x.id === id); if (i < 0) continue; const x = T.members[i]; R.scene.remove(x.holder); x.mesh.dispose(); T.members.splice(i, 1); }
+  if (NET.role === 'host' && TG.phase === 'pull') { const e = TG.teams.findIndex(T => !T.members.length); if (e >= 0) tgEnd(1 - e); }
+}
+function tgPull(k, id) {
+  if (TG.phase !== 'pull') return;
+  const T = TG.teams[k];
+  if (TG.vs === 'net') {
+    // 한 사람 힘 = 1/팀 인원 → 팀 힘은 "한 사람당 평균 당기기 빠르기"라서 2:3이어도 공정하다
+    const m = T.members.find(x => x.id === id); if (!m) return;
+    T.f += 1 / T.members.length; T.pulls++; m.pulls++; m.jerk = 1; TG.jerked.push(id);
+    if (sfxOn && id === NET.myId) sfx.step();
+    return;
+  }
+  T.f += 1; T.jerk = 1; T.pulls++;
   if (sfxOn && (k === 0 || TG.vs === '2p')) sfx.step();
 }
 function tgKey(e) {
   if (e.repeat || TG.mode !== 'key') return;
+  if (TG.vs === 'net') { if (['KeyF', 'KeyJ', 'Space'].includes(e.code)) { tgMyPull(); e.preventDefault(); } return; }
   if (TG.vs === '2p') { if (e.code === 'KeyF') { tgPull(0); e.preventDefault(); } else if (e.code === 'KeyJ') { tgPull(1); e.preventDefault(); } }
   else if (['KeyF', 'KeyJ', 'Space'].includes(e.code)) { tgPull(0); e.preventDefault(); }
 }
@@ -3311,7 +3396,7 @@ function tgHands(all, now) {
     const H = TG.hands[side] || (TG.hands[side] = { open: false, n: 0, t: 0 });
     H.n = n; H.t = now;
     if (n >= 3) H.open = true;
-    else if (n <= 1 && H.open) { H.open = false; tgPull(side); }
+    else if (n <= 1 && H.open) { H.open = false; if (TG.vs === 'net') tgMyPull(); else tgPull(side); }
   }
 }
 // 줄 잡은 자세: 뒤로 기대고 앞발로 버티며 두 손은 앞쪽 줄 높이에
@@ -3340,8 +3425,11 @@ function cheerPose(M, t, k) {
   return J;
 }
 function tgFrame(dt, now) {
-  const pulling = TG.phase === 'pull', t = now / 1000;
-  if (pulling) {
+  const pulling = TG.phase === 'pull', t = now / 1000, netGuest = TG.vs === 'net' && NET.role !== 'host';
+  if (pulling && netGuest) {
+    // 손님: 계산은 방장이. 받은 줄 위치로 부드럽게 따라간다
+    TG.t += dt; TG.X += (TG.netX - TG.X) * (1 - Math.exp(-dt * 12));
+  } else if (pulling) {
     TG.t += dt;
     // CPU 팀: 기본 박자 + 가끔 힘을 몰아 쓰고, 끝으로 갈수록 조금 지친다
     if (TG.vs === '1p') {
@@ -3353,6 +3441,8 @@ function tgFrame(dt, now) {
     for (const T of TG.teams) T.f *= Math.exp(-dt / 0.7);
     TG.v += ((TG.teams[1].f - TG.teams[0].f) * 0.18 - TG.v) * (1 - Math.exp(-dt / 0.35));
     TG.X += TG.v * dt;
+    // 방장: 0.066초마다 줄 상태를 보낸다
+    if (TG.vs === 'net' && now - TG.netAt > 66) { TG.netAt = now; netBroadcast({ type: 'tg', g: ONLINE.g, X: TG.X, v: TG.v, t: TG.t, f: [TG.teams[0].f, TG.teams[1].f], j: TG.jerked.splice(0) }); }
     if (TG.X <= -TG_WIN) tgEnd(0); else if (TG.X >= TG_WIN) tgEnd(1);
     else if (TG.t >= TG_DUR) tgEnd(Math.abs(TG.X) < 0.15 ? -1 : TG.X < 0 ? 0 : 1);
   } else if (TG.phase === 'end') { TG.v *= Math.exp(-dt * 3); TG.X += TG.v * dt; }
@@ -3363,7 +3453,8 @@ function tgFrame(dt, now) {
       let J;
       if (TG.phase === 'end' && TG.winner === k) J = cheerPose(m.model, t, m.i);
       else if (TG.phase === 'off' || TG.phase === 'count') J = tugPose(m.model, -0.18, 0, t, m.i);
-      else J = tugPose(m.model, -0.3 - 0.18 * power + 0.32 * dragged + (TG.phase === 'end' ? 0.25 : 0), clamp(T.jerk - m.delay * 4, 0, 1), t, m.i);
+      else J = tugPose(m.model, -0.3 - 0.18 * power + 0.32 * dragged + (TG.phase === 'end' ? 0.25 : 0), TG.vs === 'net' ? m.jerk : clamp(T.jerk - m.delay * 4, 0, 1), t, m.i);
+      m.jerk = Math.max(0, (m.jerk || 0) - dt * 4);
       m.mesh.update(J);
       m.holder.position.set(TG_X + TG.X + T.side * (1.15 + m.i * 1.15), 0, TG_Z + (m.i % 2 ? 0.3 : -0.3));
     }
@@ -3374,6 +3465,23 @@ function tgFrame(dt, now) {
   R.renderer.render(R.scene, R.camera);
   tgHud();
 }
+// 온라인 결과: 방장은 판정을 모두에게 보내고, 모두 팀 결과 + 선수별 당긴 횟수를 본다
+function tgNetResult(w) {
+  if (NET.role === 'host') { const pulls = {}; for (const T of TG.teams) for (const x of T.members) pulls[x.id] = x.pulls; netBroadcast({ type: 'tgend', g: ONLINE.g, w, X: TG.X, t: TG.t, pulls, tp: TG.teams.map(T => T.pulls) }); }
+  const my = TG.myTeam, dur = Math.max(1, TG.t), nm = k => k ? '빨강 팀' : '파랑 팀';
+  if (w === my) sfx.chime(); else if (w >= 0) sfx.fall();
+  const rows = TG.teams.flatMap((T, k) => T.members.map(x => ({ x, k }))).sort((a, b) => b.x.pulls - a.x.pulls);
+  showResult({
+    medal: w === -1 ? '무' : w === my ? '승' : '패', medalBg: w === my ? MEDAL_BG[0] : MEDAL_BG[3],
+    main: w === -1 ? '무승부' : `${nm(w)}<em> 승리</em>`,
+    sub: w === -1 ? '리본이 거의 가운데에 있어요' : Math.abs(TG.X) >= TG_WIN - 1e-6 ? `${TG.t.toFixed(1)}초 만에 끌어왔어요` : '30초가 지나 리본이 더 가까운 쪽이 이겼어요',
+    verify: `<strong>${nm(my)}(우리 팀) ${w === my ? '승리!' : w === -1 ? '무승부' : '패배'}</strong><span>팀 힘은 한 사람당 평균 당기기 빠르기예요. 인원이 달라도 공정해요.</span>`,
+    verifyClass: w === my || w === -1 ? 'ok' : 'bad',
+    tblTitle: '선수별 당긴 횟수', tbl: '<tr><th>선수</th><th>팀</th><th class="num">당긴 횟수</th><th class="num">초당</th></tr>' + rows.map(({ x, k }) => `<tr${x.me ? ' style="background:#fff6d6"' : ''}><td>${x.me ? '<b>나 · ' + esc(x.name) + '</b>' : esc(x.name)}</td><td>${nm(k)}</td><td class="num">${x.pulls}</td><td class="num">${(x.pulls / dur).toFixed(1)}</td></tr>`).join(''),
+    rank: '<tr><td class="lede">온라인 대결은 랭킹에 남지 않아요.</td></tr>',
+    info: '', again: NET.role === 'host' ? '다시 대결' : '방으로 돌아가기',
+  });
+}
 function tgHud() {
   $('#tgTime').textContent = TG.phase === 'pull' ? Math.max(0, Math.ceil(TG_DUR - TG.t)) : TG.phase === 'end' ? '끝' : TG_DUR;
   $('#tgMark').style.left = clamp(50 + TG.X / TG_WIN * 40, 2, 98) + '%';
@@ -3381,8 +3489,10 @@ function tgHud() {
   $('#tgPowL').style.width = clamp(A.f / 5, 0, 1) * 100 + '%'; $('#tgPowR').style.width = clamp(B.f / 5, 0, 1) * 100 + '%';
 }
 function tgEnd(w) {
+  if (TG.phase === 'end') return;
   TG.phase = 'end'; TG.winner = w; $('#evMsg').hidden = true;
   if (TG.twoHands) { tgSetHands(1); TG.twoHands = false; }
+  if (TG.vs === 'net') { tgNetResult(w); return; }
   const two = TG.vs === '2p', [A, B] = TG.teams, dur = Math.max(1, TG.t), name = playerName();
   if (w === 0 || (two && w === 1)) sfx.chime(); else sfx.fall();
   let recs = loadRecs('fsd-tug'), mine = null;
@@ -3454,20 +3564,23 @@ function fnClear() {
 }
 function fnPrepare() {
   fnClear();
-  const op = BOT_DEFS[2];
+  // 온라인: 오른쪽 선수 = 상대(방장 화면에서는 손님, 손님 화면에서는 방장). 각자 자기를 왼쪽에 본다
+  const oppId = ONLINE.on ? (ONLINE.started ? ONLINE.members : NET.order).find(id => id !== NET.myId) : null, om = oppId && NET.members.get(oppId);
+  const op = om ? { model: om.model || BOT_DEFS[2].model, color: '#e2412f', name: om.name } : BOT_DEFS[2];
+  FN.oppId = oppId; FN.oppLeft = false;
   const mk = (model, color, dir, name, lab) => {
     const holder = new THREE.Group(), mesh = new CharMesh(model, color), sword = FN.swordProto.clone();
     holder.add(mesh.group, sword); if (dir < 0) holder.rotation.y = Math.PI;
     lab.position.set(0, 2.2, 0); holder.add(lab); R.scene.add(holder);
-    return { model, color, dir, name, holder, mesh, sword, cpu: dir < 0, home: -dir * FN_HOME, x: -dir * FN_HOME, act: 'guard', at: 0, vx: 0, mv: 0, ph: 0, res: true, whiff: false, fast: false, hitT: 0.2, parT: 0, parWin: 0, ripUntil: 0, riposteAt: 0, plan: null, retreatT: 0, think: 0, pref: 2.8, cool: 0, tip: V3(0, 1, FN_Z), stats: { att: 0, hit: 0, par: 0, rip: 0 } };
+    return { model, color, dir, name, holder, mesh, sword, cpu: dir < 0 && !ONLINE.on, remote: dir < 0 && ONLINE.on, mode: 'key', tx: -dir * FN_HOME, home: -dir * FN_HOME, x: -dir * FN_HOME, act: 'guard', at: 0, vx: 0, mv: 0, ph: 0, res: true, whiff: false, fast: false, hitT: 0.2, parT: 0, parWin: 0, ripUntil: 0, riposteAt: 0, plan: null, retreatT: 0, think: 0, pref: 2.8, cool: 0, tip: V3(0, 1, FN_Z), stats: { att: 0, hit: 0, par: 0, rip: 0 } };
   };
   FN.f = [
     mk(PLAYER_MODEL, '#16181d', 1, playerName(), nameSprite('나 · ' + playerName(), '#ffc93c', '#16181d')),
-    mk(op.model, op.color, -1, op.name, nameSprite('CPU · ' + op.name, '#ffffff', op.color)),
+    mk(op.model, op.color, -1, op.name, nameSprite((om ? '' : 'CPU · ') + op.name, '#ffffff', op.color)),
   ];
   Object.assign(FN, { phase: 'off', mode: 'key', score: [0, 0], lamp: [false, false], t: 0, readyAt: 0, allezHide: 0, touchT: 0, winner: -1, sparkT: 9 });
   FN.hand.hist = []; FN.hand.open = false;
-  $('#fnNameL').textContent = '나 · ' + playerName(); $('#fnNameR').textContent = 'CPU · ' + op.name;
+  $('#fnNameL').textContent = '나 · ' + playerName(); $('#fnNameR').textContent = (om ? '' : 'CPU · ') + op.name;
   fnBoard(); fnHud();
 }
 function fnSetAct(f, act) { f.act = act; f.at = 0; }
@@ -3484,9 +3597,17 @@ function fnBegin(mode) {
   fnReady(true);
   evMsg(mode === 'cam' ? '손을 오른쪽으로 = 다가가기 · 쭉 내밀기 = 찌르기 · 주먹 = 막기' : 'A · D(←→)로 움직이고 J(Space)로 찌르기, K(F)로 막기', 3.5);
 }
+// 온라인 시작: 방장은 경기를 돌리고, 손님은 방장이 보내는 상태를 기다린다
+function fnOnlineStart(mode) {
+  FN.mode = mode; FN.f[0].mode = mode; if (FN.f[1]) FN.f[1].mode = ONLINE.modes[FN.oppId] || 'key';
+  if (NET.role === 'host') fnBegin(mode);
+  else { FN.score = [0, 0]; FN.t = 0; for (const f of FN.f) f.stats = { att: 0, hit: 0, par: 0, rip: 0 }; FN.phase = 'wait'; evMsg(mode === 'cam' ? '손을 오른쪽으로 = 다가가기 · 쭉 내밀기 = 찌르기 · 주먹 = 막기' : 'A · D(←→)로 움직이고 J(Space)로 찌르기, K(F)로 막기', 3.5); }
+}
+const fnGuest = () => ONLINE.on && NET.role !== 'host';
 function fnInput(kind) {
-  if (FN.phase === 'ready') { evMsg('"알레!" 신호가 나오면 시작해요', 1); return; }
+  if (FN.phase === 'ready' || FN.phase === 'wait') { evMsg('"알레!" 신호가 나오면 시작해요', 1); return; }
   if (FN.phase !== 'fight') return;
+  if (fnGuest()) { netToHost({ type: 'fin', g: ONLINE.g, a: kind }); return; }
   if (kind === 'lunge') fnLunge(FN.f[0]); else fnParry(FN.f[0]);
 }
 function fnLunge(f, fast) {
@@ -3499,7 +3620,7 @@ function fnLunge(f, fast) {
   f.stats.att++; f.cool = 0.4 + Math.random() * 0.6;
   if (sfxOn) sfx.swish();
   // CPU 반응: 막기 예약 또는 뒤로 빠지기. 앞서고 있으면 조금 느슨해진다
-  if (me && C.act === 'guard') {
+  if (me && C.cpu && C.act === 'guard') {
     const lead = FN.score[1] - FN.score[0], pP = (FN.mode === 'cam' ? 0.4 : 0.5) + (lead >= 2 ? -0.15 : lead <= -2 ? 0.1 : 0), r = Math.random();
     if (r < pP) C.plan = { at: FN.t + 0.02 + Math.random() * 0.16 };
     else if (r < pP + 0.2) C.retreatT = 0.35;
@@ -3507,7 +3628,7 @@ function fnLunge(f, fast) {
 }
 function fnParry(f) {
   if (f.act !== 'guard') return;
-  const cam = !f.cpu && FN.mode === 'cam';
+  const cam = !f.cpu && (f.mode || FN.mode) === 'cam';
   fnSetAct(f, 'parry'); f.parWin = f.cpu ? 0.3 : cam ? 0.5 : 0.42; f.parT = f.cpu ? 0.5 : cam ? 0.7 : 0.62;
   // 아무것도 못 막으면 0.3초 더 빈틈
   if (!f.cpu) f.parT += 0.3;
@@ -3520,8 +3641,8 @@ function fnResolve(a) {
   if (gap <= FN_REACH && d.act === 'parry' && d.at >= 0.03 && d.at <= d.parWin) {
     fnSetAct(a, 'stun'); d.parT = d.at + 0.15; d.stats.par++;
     sfx.clang(); fnSpark(V3((A.tip.x + B.tip.x) / 2, (A.tip.y + B.tip.y) / 2, FN_Z));
-    if (me) { evMsg('막혔어요! 반격이 와요', 1.2); if (Math.random() < 0.75) d.riposteAt = FN.t + 0.08 + Math.random() * 0.12; }
-    else { d.ripUntil = FN.t + 0.9; toast('막기!', 600); evMsg('막았다! 지금 찌르면 빠른 반격', 1.2); }
+    if (d.cpu) { if (Math.random() < 0.75) d.riposteAt = FN.t + 0.08 + Math.random() * 0.12; } else d.ripUntil = FN.t + 0.9;
+    fnSay(me ? 'blocked' : 'parried'); fnNetEv({ e: me ? 'parried' : 'blocked' });
     return;
   }
   if (gap <= FN_REACH) {
@@ -3531,19 +3652,28 @@ function fnResolve(a) {
     return;
   }
   a.whiff = true;
-  if (me) { evMsg('닿지 않았어요! 조금 더 다가가서 찌르세요', 1.2); if (Math.random() < 0.6 && gap <= FN_REACH + 0.5) d.riposteAt = FN.t + 0.1 + Math.random() * 0.2; }
+  if (me) fnSay('whiff'); else fnNetEv({ e: 'whiff' });
+  if (d.cpu && me && Math.random() < 0.6 && gap <= FN_REACH + 0.5) d.riposteAt = FN.t + 0.1 + Math.random() * 0.2;
 }
+// 내 화면 안내(방장은 자기 기준, 손님에게는 손님 기준으로 바꿔 보낸다)
+function fnSay(e) {
+  if (e === 'blocked') evMsg('막혔어요! 반격이 와요', 1.2);
+  else if (e === 'parried') { toast('막기!', 600); evMsg('막았다! 지금 찌르면 빠른 반격', 1.2); }
+  else if (e === 'whiff') evMsg('닿지 않았어요! 조금 더 다가가서 찌르세요', 1.2);
+}
+function fnNetEv(m) { if (ONLINE.on && NET.role === 'host') netBroadcast({ type: 'fnev', g: ONLINE.g, ...m }); }
 // k = 득점한 쪽(0 나, 1 CPU), -1 = 동시 찌르기
 function fnTouch(k) {
   const [A, B] = FN.f;
   FN.phase = 'touch'; FN.touchT = 0; FN.lamp = k < 0 ? [true, true] : [k === 0, k === 1];
   if (sfxOn) sfx.buzz();
+  fnNetEv({ e: 'touch', k: k < 0 ? -1 : 1 - k, fast: k >= 0 && FN.f[k].fast, sc: [FN.score[1] + (k === 1), FN.score[0] + (k === 0)] });
   if (k < 0) { evMsg('동시 찌르기 · 점수 없음', 1.5); fnSpark(V3((A.tip.x + B.tip.x) / 2, (A.tip.y + B.tip.y) / 2, FN_Z)); fnBoard(); return; }
   const a = FN.f[k], d = FN.f[1 - k];
   FN.score[k]++; a.stats.hit++; if (a.fast) a.stats.rip++;
   fnSetAct(d, 'hit'); fnSpark(a.tip);
   toast(k === 0 ? (a.fast ? '반격 성공!' : '투셰!') : '찔렸다!', 900);
-  evMsg(`${k === 0 ? '내' : 'CPU'} 득점 · ${FN.score[0]} : ${FN.score[1]}`, 1.5);
+  evMsg(`${k === 0 ? '내' : FN.f[1].cpu ? 'CPU' : '상대'} 득점 · ${FN.score[0]} : ${FN.score[1]}`, 1.5);
   fnBoard();
 }
 function fnCpu(dt) {
@@ -3640,12 +3770,23 @@ function fnFrame(dt, now, headless) {
   if (FN.phase !== 'off' && FN.phase !== 'end') FN.t += dt;
   if (FN.mode === 'key') A.mv = (FN.keys.fwd ? 1 : 0) - (FN.keys.back ? 1 : 0);
   else A.mv = now - FN.hand.t > 300 ? 0 : FN.hand.mv;
+  const guest = fnGuest();
+  if (ONLINE.on && !headless) {
+    // 손님: 내 이동 입력을 방장에게(바뀌면 바로, 아니면 0.25초마다) / 방장: 경기 상태를 0.05초마다
+    if (guest) { if (A.mv !== FN.sentMv || now - (FN.mvAt || 0) > 250) { FN.sentMv = A.mv; FN.mvAt = now; netToHost({ type: 'fin', g: ONLINE.g, mv: A.mv }); } }
+    else if (now - (FN.netAt || 0) > 50 && FN.phase !== 'off') { FN.netAt = now; fnNetSend(); }
+  }
+  if (guest) {
+    // 손님: 계산 없이 방장 상태를 따라가며 그린다(자세 시간만 흘린다)
+    for (const f of FN.f) { f.at += dt; f.x += (f.tx - f.x) * (1 - Math.exp(-dt * 15)); }
+    if (FN.allezHide && FN.t >= FN.allezHide) { $('#ovCount').hidden = true; FN.allezHide = 0; }
+  } else {
   if (FN.phase === 'ready') {
     for (const f of FN.f) { f.x += (f.home - f.x) * (1 - Math.exp(-dt * 6)); f.vx = 0; }
     if (FN.t >= FN.readyAt) { FN.phase = 'fight'; $('#countTxt').textContent = '알레!'; sfx.beep(1040, 0.35); FN.allezHide = FN.t + 0.6; for (const f of FN.f) f.think = 0; }
   }
   if (FN.allezHide && FN.t >= FN.allezHide) { $('#ovCount').hidden = true; FN.allezHide = 0; }
-  if (FN.phase === 'fight') fnCpu(dt);
+  if (FN.phase === 'fight' && !ONLINE.on) fnCpu(dt);
   for (const f of FN.f) fnAct(f, dt);
   if (FN.phase === 'fight') {
     for (const f of FN.f) {
@@ -3658,6 +3799,7 @@ function fnFrame(dt, now, headless) {
   if (FN.phase === 'touch') {
     FN.touchT += dt;
     if (FN.touchT > 1.6) { if (Math.max(...FN.score) >= FN_WIN) fnEnd(); else fnReady(false); }
+  }
   }
   // 그리기
   const off = FN.f.map(f => FN_LUNGE * Math.max(0, fnLungeAmt(f))), gapEff = B.x - A.x - off[0] - off[1];
@@ -3704,23 +3846,58 @@ function fnHud() {
   dist.textContent = rip ? '반격 기회! 지금 찌르세요' : near ? '찌를 수 있는 거리!' : `거리 ${gap.toFixed(1)}m · 조금 더 다가가세요`;
   dist.classList.toggle('ok', near || rip);
 }
+// 방장 → 손님: 경기 상태(손님 화면에서는 좌우가 바뀌므로 그대로 보내고 받는 쪽에서 뒤집는다)
+function fnNetSend() {
+  const p = f => [+f.x.toFixed(3), f.act, +f.at.toFixed(3), f.hitT, f.fast ? 1 : 0, +f.parT.toFixed(3), f.parWin, f.whiff ? 1 : 0, +(f.ripUntil - FN.t).toFixed(2)];
+  netBroadcast({ type: 'fn', g: ONLINE.g, ph: FN.phase, t: +FN.t.toFixed(3), ra: +(FN.readyAt - FN.t).toFixed(2), sc: FN.score, lamp: FN.lamp, f: FN.f.map(p) });
+}
+function fnNetInput(m) {
+  const B = FN.f[1]; if (!B || !B.remote) return;
+  if (m.mv !== undefined) B.mv = clamp(+m.mv || 0, -1, 1);
+  if (FN.phase !== 'fight') return;
+  if (m.a === 'lunge') fnLunge(B); else if (m.a === 'parry') fnParry(B);
+}
+function fnNetState(m) {
+  const [A, B] = FN.f; if (!A || FN.phase === 'end' || FN.phase === 'off') return;
+  const set = (f, d) => { f.tx = -d[0]; if (f.act !== d[1] || Math.abs(f.at - d[2]) > 0.12) { f.act = d[1]; f.at = d[2]; } f.hitT = d[3]; f.fast = !!d[4]; f.parT = d[5]; f.parWin = d[6]; f.whiff = !!d[7]; f.ripUntil = FN.t + d[8]; f.res = true; };
+  set(A, m.f[1]); set(B, m.f[0]);
+  FN.score = [m.sc[1], m.sc[0]]; FN.lamp = [m.lamp[1], m.lamp[0]]; FN.t = m.t; FN.readyAt = m.t + m.ra;
+  if (m.ph !== FN.phase && m.ph !== 'end') { // 끝은 end 이벤트로만(결과 화면을 한 번만 띄우려고)
+    FN.phase = m.ph;
+    if (m.ph === 'ready') { $('#ovCount').hidden = false; $('#countTxt').textContent = '준비'; sfx.beep(520, 0.12); }
+    else if (m.ph === 'fight') { $('#countTxt').textContent = '알레!'; sfx.beep(1040, 0.35); FN.allezHide = FN.t + 0.6; }
+    fnBoard();
+  }
+}
+function fnNetEvent(m) {
+  if (m.e === 'touch') {
+    FN.score = m.sc; FN.lamp = m.k < 0 ? [true, true] : [m.k === 0, m.k === 1]; FN.phase = 'touch'; fnBoard(); if (sfxOn) sfx.buzz();
+    if (m.k < 0) { evMsg('동시 찌르기 · 점수 없음', 1.5); return; }
+    const a = FN.f[m.k]; fnSpark(a.tip); fnSetAct(FN.f[1 - m.k], 'hit');
+    toast(m.k === 0 ? (m.fast ? '반격 성공!' : '투셰!') : '찔렸다!', 900); evMsg(`${m.k === 0 ? '내' : '상대'} 득점 · ${FN.score[0]} : ${FN.score[1]}`, 1.5);
+  } else if (m.e === 'end') { FN.score = m.sc; FN.oppLeft = !!m.left; if (m.st) { FN.f[0].stats = m.st[0]; FN.f[1].stats = m.st[1]; } fnEnd(); }
+  else fnSay(m.e);
+}
+function fnNetLeft() { if (NET.role !== 'host' || FN.phase === 'end' || FN.phase === 'off') return; FN.oppLeft = true; fnEnd(); }
 function fnEnd() {
-  FN.phase = 'end'; FN.winner = FN.score[0] >= FN_WIN ? 0 : 1; $('#evMsg').hidden = true; $('#ovCount').hidden = true;
+  if (FN.phase === 'end') return;
+  FN.phase = 'end'; FN.winner = FN.oppLeft || FN.score[0] >= FN_WIN ? 0 : 1; $('#evMsg').hidden = true; $('#ovCount').hidden = true;
+  if (ONLINE.on && NET.role === 'host') netBroadcast({ type: 'fnev', g: ONLINE.g, e: 'end', sc: [FN.score[1], FN.score[0]], st: [FN.f[1].stats, FN.f[0].stats] }); // 기록은 방장 쪽에만 쌓인다
   const [A, B] = FN.f, win = FN.winner === 0, name = playerName();
   if (win) sfx.chime(); else sfx.fall();
   fnBoard();
   let recs = loadRecs('fsd-fence'), mine = null;
-  if (win) { mine = { name, op: FN.score[1], time: FN.t, mode: FN.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => a.op - b.op || a.time - b.time); recs = recs.slice(0, 10); saveRecs('fsd-fence', recs); }
+  if (win && !ONLINE.on) { mine = { name, op: FN.score[1], time: FN.t, mode: FN.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => a.op - b.op || a.time - b.time); recs = recs.slice(0, 10); saveRecs('fsd-fence', recs); }
   const acc = s => s.att ? Math.round(s.hit / s.att * 100) : 0, row = (f, b) => `<tr><td>${b ? '<b>' + esc(f.name) + '</b>' : esc(f.name)}</td><td class="num">${FN.score[f === A ? 0 : 1]}</td><td class="num">${f.stats.att}</td><td class="num">${acc(f.stats)}%</td><td class="num">${f.stats.par}</td></tr>`;
   showResult({
     medal: win ? '승' : '패', medalBg: win ? MEDAL_BG[0] : MEDAL_BG[3],
     main: `${FN.score[0]} : ${FN.score[1]}<em> ${win ? '승리' : '패배'}</em>`,
-    sub: win ? `${FN.t.toFixed(1)}초 만에 5점을 냈어요` : `CPU ${B.name} 선수가 먼저 5점을 냈어요`,
+    sub: FN.oppLeft ? '상대가 나가서 경기가 끝났어요' : win ? `${FN.t.toFixed(1)}초 만에 5점을 냈어요` : `${B.cpu ? 'CPU ' : ''}${B.name} 선수가 먼저 5점을 냈어요`,
     verify: `<strong>찌르기 ${A.stats.att}번 중 ${A.stats.hit}번 명중 (${acc(A.stats)}%)</strong><span>막기 성공 ${A.stats.par}번 · 반격으로 낸 점수 ${A.stats.rip}점</span>`,
     verifyClass: win ? 'ok' : 'bad',
     tblTitle: '이번 경기', tbl: `<tr><th>선수</th><th class="num">점수</th><th class="num">찌르기</th><th class="num">명중률</th><th class="num">막기 성공</th></tr>${row(A, true)}${row(B, false)}`,
-    rank: rankRows(recs, mine, r => `5 : ${r.op} · ${r.time.toFixed(0)}초`),
-    info: '실점이 적을수록, 같으면 빨리 이길수록 랭킹이 높아요. 상대가 팔을 뒤로 당기는 순간 막고 바로 찌르면 반격이 돼요.', again: '다시 겨루기',
+    rank: ONLINE.on ? '<tr><td class="lede">온라인 대결은 랭킹에 남지 않아요.</td></tr>' : rankRows(recs, mine, r => `5 : ${r.op} · ${r.time.toFixed(0)}초`),
+    info: '실점이 적을수록, 같으면 빨리 이길수록 랭킹이 높아요. 상대가 팔을 뒤로 당기는 순간 막고 바로 찌르면 반격이 돼요.', again: ONLINE.on ? (NET.role === 'host' ? '다시 대결' : '방으로 돌아가기') : '다시 겨루기',
   });
 }
 /* =========================================================
@@ -3815,23 +3992,65 @@ function cuClear() {
 function cuPrepare() {
   cuClear();
   const mus = orMusicians();
+  // 노랑 팀(0) = 마지막 돌(해머). 혼자: 나 / 온라인: 나중에 들어온 사람
+  const ids = ONLINE.on ? (ONLINE.started ? ONLINE.members : NET.order) : [];
+  CU.ids = ONLINE.on ? [ids[1], ids[0]] : null; CU.myTeam = ONLINE.on ? (CU.ids[0] === NET.myId ? 0 : 1) : 0; CU.oppLeft = false; CU.netSweep = 0; CU.netAim = { aimZ: 0, spin: 1, pow: 0 };
+  const thr = k => ONLINE.on ? (CU.ids[k] === NET.myId ? { model: PLAYER_MODEL, color: '#16181d' } : { model: (NET.members.get(CU.ids[k]) || {}).model || BOT_DEFS[1].model, color: '#e2412f' }) : k ? { model: BOT_DEFS[1].model, color: '#e2412f' } : { model: PLAYER_MODEL, color: '#16181d' };
   const team = (list, k) => ({
     members: list.map((d, i) => {
       const holder = new THREE.Group(), mesh = new CharMesh(d.model, d.color); holder.add(mesh.group);
       const broom = CU.broomProto(); holder.add(broom);
-      if (i === 0) { const lab = k ? nameSprite('CPU · ' + BOT_DEFS[1].name, '#ffffff', '#e2412f') : nameSprite('나 · ' + playerName(), '#ffc93c', '#16181d'); lab.position.set(0.5, 1.75, 0); holder.add(lab); }
+      if (i === 0) { const lab = k === CU.myTeam ? nameSprite('나 · ' + playerName(), '#ffc93c', '#16181d') : nameSprite(cuTeamName(k), '#ffffff', k ? '#e2412f' : '#b8860b'); lab.position.set(0.5, 1.75, 0); holder.add(lab); }
       R.scene.add(holder); return { ...d, holder, mesh, broom, i, x: 0, z: 0, ph: 0, stand: 0 };
     }),
   });
   CU.teams = [
-    team([{ model: PLAYER_MODEL, color: '#16181d' }, { model: mus[3].model, color: '#1f4fd1' }, { model: mus[4].model, color: '#1f4fd1' }], 0),
-    team([{ model: BOT_DEFS[1].model, color: '#e2412f' }, { model: BOT_DEFS[0].model, color: '#e2412f' }, { model: BOT_DEFS[2].model, color: '#e2412f' }], 1),
+    team([thr(0), { model: mus[3].model, color: '#1f4fd1' }, { model: mus[4].model, color: '#1f4fd1' }], 0),
+    team([thr(1), { model: BOT_DEFS[0].model, color: '#e2412f' }, { model: BOT_DEFS[2].model, color: '#e2412f' }], 1),
   ];
   Object.assign(CU, { phase: 'off', mode: 'key', turn: 0, aimZ: 0, spin: 1, spinAuto: true, pow: 0, sweep: 0, sweepImp: 0, cpuSweep: 0, phT: 0, acc: 0, plan: null, tk: [0, 0], result: null, shown: false, keys: { l: false, r: false } });
   CU.hand.hist = []; CU.hand.open = false;
-  $('#cuNameL').textContent = '나 · ' + playerName(); $('#cuNameR').textContent = 'CPU · ' + BOT_DEFS[1].name;
+  $('#cuNameL').textContent = (CU.myTeam === 0 ? '나 · ' : '') + cuTeamName(0); $('#cuNameR').textContent = (CU.myTeam === 1 ? '나 · ' : '') + cuTeamName(1);
   cuNewStone(1); cuGhost(); cuHud();
 }
+const cuTeamName = k => ONLINE.on && CU.ids ? netName(CU.ids[k]) : k ? 'CPU · ' + BOT_DEFS[1].name : playerName();
+const cuGuest = () => ONLINE.on && NET.role !== 'host';
+function cuOnlineStart(mode) {
+  CU.mode = mode;
+  if (NET.role === 'host') cuNextTurn(true); else { CU.phase = 'wait'; evMsg(cuTeamOf(0) === CU.myTeam ? '내가 먼저 던져요' : `${cuTeamName(1)} 선수가 먼저 던져요`, 2); }
+}
+// 방장 → 손님: 돌 · 차례 · 조준 상태
+function cuNetSend() {
+  netBroadcast({ type: 'cu', g: ONLINE.g, ph: CU.phase, turn: CU.turn, aimZ: CU.aimZ, spin: CU.spin, pow: CU.pow, sw: CU.sweep, tk: CU.tk,
+    st: CU.stones.map(s => [+s.x.toFixed(3), +s.z.toFixed(3), s.team, s.out ? 1 : 0, +s.w.toFixed(2), s.moving ? 1 : 0, +s.vx.toFixed(2), +s.vz.toFixed(2)]), res: CU.result ? [CU.result.team, CU.result.pts] : null, left: CU.oppLeft ? 1 : 0 });
+}
+function cuNetInput(m) {
+  const remote = cuTeamOf(CU.turn) !== CU.myTeam;
+  if (m.type === 'cua' && remote) CU.netAim = { aimZ: clamp(+m.aimZ || 0, -1.9, 1.9), spin: m.spin < 0 ? -1 : 1, pow: clamp(+m.pow || 0, 0, 1) };
+  else if (m.type === 'cut' && remote && CU.phase === 'raim') { CU.aimZ = clamp(+m.aimZ || 0, -1.9, 1.9); CU.spin = m.spin < 0 ? -1 : 1; cuThrow(clamp(+m.v0 || 0, 3.6, 6.8)); }
+  else if (m.type === 'cus') CU.netSweep = clamp(+m.v || 0, 0, 1);
+}
+// 손님: 방장 상태 적용. 방장이 "손님 조준 기다림(raim)"이면 내 차례 → 내 화면에서 조준한다
+function cuNetState(m) {
+  if (CU.phase === 'end' || !CU.teams.length) return;
+  for (let i = 0; i < m.st.length; i++) {
+    const d = m.st[i];
+    if (!CU.stones[i]) { const s = cuNewStone(d[2]); s.cur = true; }
+    const s = CU.stones[i]; s.x = d[0]; s.z = d[1]; s.w = d[4]; s.moving = !!d[5]; s.vx = d[6]; s.vz = d[7];
+    if (d[3] && !s.out) { s.out = true; if (s.mesh.parent) CU.stonesG.remove(s.mesh); }
+  }
+  CU.turn = m.turn; CU.tk = m.tk;
+  const mine = cuTeamOf(CU.turn) === CU.myTeam, prev = CU.phase;
+  if (m.ph === 'raim' && mine) { if (!['aim', 'power', 'sent'].includes(CU.phase)) { CU.phase = 'aim'; CU.pow = 0; CU.powDir = 1; CU.spinAuto = true; evMsg(CU.mode === 'cam' ? '내 차례! 손을 좌우로 움직여 조준 → 주먹을 쥐면 힘 모으기 → 손을 펴면 던져요' : '내 차례! ← → 조준 · Q/E 회전 · Space를 누르고 있다가 떼면 던져요', 3); } }
+  else { CU.phase = (m.ph === 'aim' || m.ph === 'power') ? 'raim' : m.ph; CU.aimZ = m.aimZ; CU.spin = m.spin; CU.pow = m.pow; if (!mine) CU.sweep = m.sw; }
+  if (CU.phase !== prev) {
+    CU.phT = 0;
+    if (CU.phase === 'raim') evMsg(`${CU.turn + 1}번째 돌 · ${cuTeamName(cuTeamOf(CU.turn))} 차례`, 1.6);
+    if (CU.phase === 'settle') { const sc = cuScore(CU.stones); evMsg(sc.team < 0 ? '하우스 안에 돌이 없어요' : `지금은 ${sc.team === CU.myTeam ? '내' : '상대'} 돌이 가장 가까워요 · ${sc.pts}점`, 1.4); }
+    if (CU.phase === 'end') { CU.oppLeft = !!m.left; CU.result = m.res ? { ...cuScore(CU.stones), team: m.res[0], pts: m.res[1] } : cuScore(CU.stones); cuFinishFx(); }
+  }
+}
+function cuNetLeft() { if (NET.role !== 'host' || CU.phase === 'end' || CU.phase === 'off') return; CU.oppLeft = true; cuFinish(); }
 function cuNewStone(team) {
   const mesh = CU.stoneProto(team); CU.stonesG.add(mesh);
   const s = { x: -2.6, z: 0, vx: 0, vz: 0, spin: 1, w: 0, team, moving: false, cur: true, hit: false, out: false, mesh };
@@ -3851,8 +4070,9 @@ function cuNextTurn(first) {
     if (CU.turn >= CU_N * 2) { cuFinish(); return; }
     cuNewStone(cuTeamOf(CU.turn));
   }
-  const team = cuTeamOf(CU.turn); CU.pow = 0; CU.powDir = 1; CU.sweep = 0; CU.sweepImp = 0; CU.cpuSweep = 0; CU.phT = 0;
-  if (team === 1) { CU.phase = 'cpuAim'; CU.plan = cuCpuPlan(); evMsg(`${CU.turn + 1}번째 돌 · CPU 차례`, 1.6); }
+  const team = cuTeamOf(CU.turn); CU.pow = 0; CU.powDir = 1; CU.sweep = 0; CU.sweepImp = 0; CU.cpuSweep = 0; CU.phT = 0; CU.netSweep = 0;
+  if (team !== CU.myTeam && ONLINE.on) { CU.phase = 'raim'; CU.plan = null; CU.netAim = { aimZ: 0, spin: 1, pow: 0 }; evMsg(`${CU.turn + 1}번째 돌 · ${cuTeamName(team)} 차례`, 1.6); }
+  else if (team !== CU.myTeam) { CU.phase = 'cpuAim'; CU.plan = cuCpuPlan(); evMsg(`${CU.turn + 1}번째 돌 · CPU 차례`, 1.6); }
   else {
     CU.phase = 'aim'; CU.plan = null; CU.spinAuto = true;
     evMsg(CU.mode === 'cam' ? '손을 좌우로 움직여 조준 → 주먹을 쥐면 힘 모으기 → 손을 펴면 던져요' : '← → 조준 · Q/E 회전 · Space를 누르고 있다가 떼면 던져요', 3);
@@ -3878,10 +4098,11 @@ function cuCpuPlan() {
 }
 function cuStartPower() { if (CU.phase !== 'aim') return; CU.phase = 'power'; CU.pow = 0; CU.powDir = 1; }
 function cuThrow(v0) {
-  if (CU.phase !== 'power' && CU.phase !== 'cpuAim') return;
+  if (cuGuest()) { if (CU.phase !== 'power') return; netToHost({ type: 'cut', g: ONLINE.g, v0, aimZ: CU.aimZ, spin: CU.spin }); CU.phase = 'sent'; return; }
+  if (CU.phase !== 'power' && CU.phase !== 'cpuAim' && CU.phase !== 'raim') return;
   CU.v0 = v0; CU.phase = 'slide'; CU.phT = 0; CU.cur.spin = CU.spin; sfx.step();
 }
-function cuSweepTap() { if (CU.phase === 'run' && cuTeamOf(CU.turn) === 0 && CU.cur.moving) { CU.sweepImp = Math.min(1.4, CU.sweepImp + 0.28); if (sfxOn) sfx.step(); } }
+function cuSweepTap() { if (CU.phase === 'run' && cuTeamOf(CU.turn) === CU.myTeam && CU.cur.moving) { CU.sweepImp = Math.min(1.4, CU.sweepImp + 0.28); if (sfxOn) sfx.step(); } }
 function cuKey(e, down) {
   if (CU.mode !== 'key') return;
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') { CU.keys.l = down; e.preventDefault(); return; }
@@ -3947,28 +4168,41 @@ function cuSettle() {
   for (const o of CU.stones) if (o.out && o.mesh.parent) CU.stonesG.remove(o.mesh);
   CU.phase = 'settle'; CU.phT = 0;
   const sc = cuScore(CU.stones);
-  if (!(s.out && s.x < CU_HOG)) evMsg(sc.team < 0 ? '하우스 안에 돌이 없어요' : `지금은 ${sc.team ? 'CPU' : '내'} 돌이 가장 가까워요 · ${sc.pts}점`, 1.4);
+  if (!(s.out && s.x < CU_HOG)) evMsg(sc.team < 0 ? '하우스 안에 돌이 없어요' : `지금은 ${sc.team === CU.myTeam ? '내' : ONLINE.on ? '상대' : 'CPU'} 돌이 가장 가까워요 · ${sc.pts}점`, 1.4);
 }
 function cuFinish() {
   CU.phase = 'end'; CU.phT = 0; CU.result = cuScore(CU.stones);
+  // 상대가 나가면 내 승리로 끝낸다
+  if (CU.oppLeft) CU.result = { team: CU.myTeam, pts: 0, counting: [] };
+  if (ONLINE.on && NET.role === 'host') cuNetSend();
+  cuFinishFx();
+}
+function cuFinishFx() {
   const r = CU.result;
-  toast(r.team < 0 ? '무승부' : r.team === 0 ? `${r.pts}점 획득!` : 'CPU 득점', 1400);
-  if (r.team === 0) sfx.chime(); else if (r.team === 1) sfx.fall();
+  toast(CU.oppLeft ? '상대가 나갔어요' : r.team < 0 ? '무승부' : r.team === CU.myTeam ? `${r.pts}점 획득!` : ONLINE.on ? '상대 득점' : 'CPU 득점', 1400);
+  if (r.team === CU.myTeam) sfx.chime(); else if (r.team >= 0) sfx.fall();
 }
 // headless: 그리지 않고 경기만 진행(자체 검사용)
 function cuFrame(dt, now, headless) {
   const t = now / 1000, [A, B] = CU.teams; if (!A) return;
   CU.phT += dt;
-  const myTurn = cuTeamOf(CU.turn) === 0, s = CU.cur;
+  const myTurn = cuTeamOf(CU.turn) === CU.myTeam, s = CU.cur, guest = cuGuest();
+  // 온라인: 손님은 조준 상태(0.1초마다)와 스위핑 세기를, 방장은 경기 상태(0.066초마다)를 보낸다
+  if (ONLINE.on && !headless && s) {
+    if (guest) { if (now - (CU.netAt || 0) > 100) { CU.netAt = now; if (CU.phase === 'aim' || CU.phase === 'power') netToHost({ type: 'cua', g: ONLINE.g, aimZ: CU.aimZ, spin: CU.spin, pow: CU.pow }); else if (CU.phase === 'run' && myTurn) netToHost({ type: 'cus', g: ONLINE.g, v: CU.sweep }); } }
+    else if (now - (CU.netAt || 0) > 66 && CU.phase !== 'off' && CU.phase !== 'count') { CU.netAt = now; cuNetSend(); }
+  }
   // 조준
   if (CU.phase === 'aim' || CU.phase === 'power') {
     if (CU.mode === 'key') CU.aimZ = clamp(CU.aimZ + ((CU.keys.r ? 1 : 0) - (CU.keys.l ? 1 : 0)) * 1.2 * dt, -1.9, 1.9);
     cuGhost();
     if (CU.phase === 'power') { CU.pow += CU.powDir * dt / 1.3; if (CU.pow >= 1) { CU.pow = 1; CU.powDir = -1; } else if (CU.pow <= 0) { CU.pow = 0; CU.powDir = 1; } }
+  } else if (CU.phase === 'raim' && !guest) {
+    CU.aimZ = CU.netAim.aimZ; CU.spin = CU.netAim.spin; CU.pow = CU.netAim.pow;
   } else if (CU.phase === 'cpuAim') {
     const P = CU.plan, u = clamp(CU.phT / 1.2, 0, 1); CU.aimZ = lerp(0, P.aimZ, ease(u)); CU.spin = P.spin; CU.pow = clamp((P.v0 - 3.6) / 3.2, 0, 1) * u;
     if (CU.phT >= 1.5) cuThrow(P.v0);
-  } else if (CU.phase === 'slide') {
+  } else if (CU.phase === 'slide' && !guest) {
     const u = clamp(CU.phT / 0.6, 0, 1); s.x = lerp(-2.6, 0, ease(u)); s.z = 0;
     if (u >= 1) { const L = Math.hypot(CU_D, CU.aimZ); s.vx = CU.v0 * CU_D / L; s.vz = CU.v0 * CU.aimZ / L; s.moving = true; CU.phase = 'run'; CU.phT = 0; CU.acc = 0; }
   }
@@ -3977,14 +4211,17 @@ function cuFrame(dt, now, headless) {
     CU.sweepImp *= Math.exp(-dt / 0.45);
     const hs = CU.mode === 'cam' && now - CU.hand.t < 300 ? CU.hand.sw : 0;
     if (myTurn) CU.sweep += (clamp(Math.max(CU.sweepImp, hs), 0, 1) - CU.sweep) * (1 - Math.exp(-dt * 8));
+    else if (ONLINE.on) CU.sweep += (CU.netSweep - CU.sweep) * (1 - Math.exp(-dt * 8));
     else { const v = Math.hypot(s.vx, s.vz), stop = s.x + v * v / (2 * CU_A); CU.sweep = CU.plan.kind !== 'take' && s.x > 4 && stop < CU.plan.tx - 0.2 ? 1 : 0; }
     if (myTurn && CU.sweep > 0.6 && t - CU.yeongT > 1.6) { CU.yeongT = t; toast('영미~!', 700); }
+    if (!guest) {
     CU.acc += dt; let n = 0;
     while (CU.acc >= 1 / 120 && n < 40) { CU.acc -= 1 / 120; n++; cuStep(CU.stones, 1 / 120, CU.sweep, v => { if (v > 0.3 && sfxOn) sfx.thud(); }); }
     for (const o of CU.stones) if (o.out && o.mesh.parent) { CU.stonesG.remove(o.mesh); if (o !== s && o.team !== s.team) CU.tk[s.team]++; }
     if (CU.stones.every(o => !o.moving || o.out)) cuSettle();
+    }
   } else CU.sweep *= Math.exp(-dt * 4);
-  if (CU.phase === 'settle' && CU.phT > 1.4) cuNextTurn(false);
+  if (CU.phase === 'settle' && CU.phT > 1.4 && !guest) cuNextTurn(false);
   if (CU.phase === 'end' && CU.phT > 1.6 && !CU.shown) { CU.shown = true; cuEnd(); }
   if (headless) return;
   // 그리기
@@ -3992,7 +4229,7 @@ function cuFrame(dt, now, headless) {
   const act = cuTeamOf(Math.min(CU.turn, CU_N * 2 - 1));
   CU.teams.forEach((T, k) => T.members.forEach(m => { m.holder.visible = k === act; }));
   const T = CU.teams[act], thr = T.members[0];
-  if (['off', 'count', 'aim', 'power', 'cpuAim', 'slide'].includes(CU.phase)) { thr.x = s.x - 0.95; thr.stand = 0; }
+  if (['off', 'count', 'wait', 'aim', 'power', 'cpuAim', 'raim', 'sent', 'slide'].includes(CU.phase)) { thr.x = s.x - 0.95; thr.stand = 0; }
   else if (CU.phase === 'run' && thr.stand < 1) { thr.x += Math.max(0, 1.2 - thr.stand) * dt; thr.stand = Math.min(1, thr.stand + dt * 0.8); }
   let Jt = deliverPose(thr.model, 0.95, 0.14);
   if (CU.phase === 'end' && CU.result.team === act) Jt = cheerPose(thr.model, t, 0);
@@ -4005,7 +4242,7 @@ function cuFrame(dt, now, headless) {
     const v = running ? Math.hypot(s.vx, s.vz) : 0, sp = sweepPose(m.model, m.ph, clamp(v / 2, 0, 1) * 0.45, t + i, running ? CU.sweep : 0);
     m.mesh.update(sp.J); m.holder.position.set(CU_X + m.x, 0, CU_Z + m.z); cuSetBroom(m, sp.top, sp.head, -side * 0.42);
   });
-  const aiming = ['aim', 'power', 'cpuAim'].includes(CU.phase);
+  const aiming = ['aim', 'power', 'cpuAim', 'raim', 'sent'].includes(CU.phase);
   CU.aimLine.visible = aiming; CU.ghostMesh.visible = aiming && myTurn && CU.ghost && !CU.ghost.out;
   if (aiming) {
     const p = CU.aimLine.geometry.attributes.position; p.setXYZ(0, CU_X + s.x + 0.3, 0.03, CU_Z); p.setXYZ(1, CU_X + CU_D, 0.03, CU_Z + CU.aimZ); p.needsUpdate = true; CU.aimLine.computeLineDistances();
@@ -4040,9 +4277,9 @@ function cuHud() {
   const left = k => { const thrown = CU.stones.filter(s => s.team === k && (s !== CU.cur || ['run', 'settle', 'end'].includes(CU.phase))).length; return '●'.repeat(CU_N - thrown) + '○'.repeat(thrown); };
   $('#cuLeftL').textContent = left(0); $('#cuLeftR').textContent = left(1);
   const sc = cuScore(CU.stones);
-  $('#cuState').textContent = sc.team < 0 ? '지금은 아무도 점수가 없어요' : `지금은 ${sc.team ? 'CPU' : '나'} ${sc.pts}점`;
-  const my = cuTeamOf(Math.min(CU.turn, CU_N * 2 - 1)) === 0;
-  $('#cuTurn').textContent = CU.phase === 'end' ? '경기 끝' : `${my ? '내 차례' : 'CPU 차례'} · ${CU.turn + 1} / ${CU_N * 2}번째 돌${CU.turn === CU_N * 2 - 1 ? ' (마지막 돌)' : ''}`;
+  $('#cuState').textContent = sc.team < 0 ? '지금은 아무도 점수가 없어요' : `지금은 ${sc.team === CU.myTeam ? '나' : ONLINE.on ? '상대' : 'CPU'} ${sc.pts}점`;
+  const my = cuTeamOf(Math.min(CU.turn, CU_N * 2 - 1)) === CU.myTeam;
+  $('#cuTurn').textContent = CU.phase === 'end' ? '경기 끝' : `${my ? '내 차례' : ONLINE.on ? '상대 차례' : 'CPU 차례'} · ${CU.turn + 1} / ${CU_N * 2}번째 돌${CU.turn === CU_N * 2 - 1 ? ' (마지막 돌)' : ''}`;
   $('#cuPowDot').style.left = CU.pow * 100 + '%'; $('#cuPowTxt').textContent = CU.phase === 'power' || CU.phase === 'cpuAim' ? Math.round(CU.pow * 100) + '%' : '-';
   const pa = (Math.sqrt(2 * CU_A * (CU_D - CU_HOUSE)) - 3.6) / 3.2, pb = (Math.sqrt(2 * CU_A * (CU_D + CU_HOUSE)) - 3.6) / 3.2;
   $('#cuBand').style.left = pa * 100 + '%'; $('#cuBand').style.width = (pb - pa) * 100 + '%';
@@ -4051,20 +4288,20 @@ function cuHud() {
   cuDrawHouse();
 }
 function cuEnd() {
-  const r = CU.result, win = r.team === 0, name = playerName(), my = win ? r.pts : 0, op = r.team === 1 ? r.pts : 0;
+  const r = CU.result, me = CU.myTeam, win = r.team === me, name = playerName(), my = win ? r.pts : 0, op = r.team === 1 - me ? r.pts : 0;
   $('#evMsg').hidden = true;
   let recs = loadRecs('fsd-curl'), mine = null;
-  if (win) { mine = { name, my, op, mode: CU.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.my - a.my || b.at - a.at); recs = recs.slice(0, 10); saveRecs('fsd-curl', recs); }
+  if (win && !ONLINE.on) { mine = { name, my, op, mode: CU.mode, at: Date.now() }; recs.push(mine); recs.sort((a, b) => b.my - a.my || b.at - a.at); recs = recs.slice(0, 10); saveRecs('fsd-curl', recs); }
   const inH = k => CU.stones.filter(s => s.team === k && !s.out && Math.hypot(s.x - CU_D, s.z) <= CU_HOUSE + CU_R).length;
   showResult({
     medal: r.team < 0 ? '무' : win ? '승' : '패', medalBg: r.team < 0 ? MEDAL_BG[3] : win ? MEDAL_BG[0] : MEDAL_BG[3],
     main: `${my} : ${op}<em> ${r.team < 0 ? '무승부' : win ? '승리' : '패배'}</em>`,
-    sub: r.team < 0 ? '하우스 안에 남은 돌이 없어요' : win ? `티에 가장 가까운 돌부터 내 돌이 ${r.pts}개` : `티에 가장 가까운 돌부터 CPU 돌이 ${r.pts}개`,
-    verify: `<strong>하우스 안에 남은 내 돌 ${inH(0)}개 · CPU 돌 ${inH(1)}개</strong><span>쳐낸 상대 돌: 나 ${CU.tk[0]}개 · CPU ${CU.tk[1]}개</span>`,
+    sub: r.team < 0 ? '하우스 안에 남은 돌이 없어요' : win ? `티에 가장 가까운 돌부터 내 돌이 ${r.pts}개` : `티에 가장 가까운 돌부터 ${ONLINE.on ? "상대" : "CPU"} 돌이 ${r.pts}개`,
+    verify: CU.oppLeft ? '<strong>상대가 나갔어요</strong><span>경기가 끝나기 전에 연결이 끊겼어요.</span>' : `<strong>하우스 안에 남은 내 돌 ${inH(me)}개 · ${ONLINE.on ? '상대' : 'CPU'} 돌 ${inH(1 - me)}개</strong><span>쳐낸 상대 돌: 나 ${CU.tk[me]}개 · ${ONLINE.on ? '상대' : 'CPU'} ${CU.tk[1 - me]}개</span>`,
     verifyClass: win || r.team < 0 ? 'ok' : 'bad',
-    tblTitle: '이번 경기', tbl: `<tr><th>팀</th><th class="num">점수</th><th class="num">하우스 안 돌</th><th class="num">쳐낸 돌</th></tr><tr><td><b>${esc(name)}</b></td><td class="num">${my}</td><td class="num">${inH(0)}</td><td class="num">${CU.tk[0]}</td></tr><tr><td>CPU · ${esc(BOT_DEFS[1].name)}</td><td class="num">${op}</td><td class="num">${inH(1)}</td><td class="num">${CU.tk[1]}</td></tr>`,
-    rank: rankRows(recs, mine, r => `${r.my} : ${r.op} 승리`),
-    info: '한 엔드(돌 4개씩) 승부예요. 많은 점수 차로 이길수록 랭킹이 높아요. 끝부분에서 스위핑하면 돌이 2m쯤 더 가요.', again: '다시 던지기',
+    tblTitle: '이번 경기', tbl: `<tr><th>팀</th><th class="num">점수</th><th class="num">하우스 안 돌</th><th class="num">쳐낸 돌</th></tr><tr><td><b>${esc(name)}</b></td><td class="num">${my}</td><td class="num">${inH(me)}</td><td class="num">${CU.tk[me]}</td></tr><tr><td>${esc(cuTeamName(1 - me))}</td><td class="num">${op}</td><td class="num">${inH(1 - me)}</td><td class="num">${CU.tk[1 - me]}</td></tr>`,
+    rank: ONLINE.on ? '<tr><td class="lede">온라인 대결은 랭킹에 남지 않아요.</td></tr>' : rankRows(recs, mine, r => `${r.my} : ${r.op} 승리`),
+    info: '한 엔드(돌 4개씩) 승부예요. 많은 점수 차로 이길수록 랭킹이 높아요. 끝부분에서 스위핑하면 돌이 2m쯤 더 가요.', again: ONLINE.on ? (NET.role === 'host' ? '다시 대결' : '방으로 돌아가기') : '다시 던지기',
   });
 }
 /* =========================================================
@@ -4076,6 +4313,7 @@ function frame(now) {
   const dt = PAUSED ? 0 : Math.min(0.1, (now - lastT) / 1000); lastT = now;
   if (HT.ready && (!$('#hudCam').hidden || MH.on)) { try { handTick(now); } catch { } }
   if (view === 'convert') renderPreview(dt);
+  netBeatFrame(now);
   if (MH.on) {
     syncMenuFocus();
     const mc = $('#menuCam'); mc.hidden = (view === 'race' || view === 'record') && !$('#hudCam').hidden;
@@ -4120,21 +4358,31 @@ function frame(now) {
   }
 }
 /* =========================================================
-   온라인 대결 (100m, PeerJS · WebRTC)
-   - 방 상태는 show() 화면 전환, 경기 상태는 RACE.phase에 얹는다 (D3)
-   - 보내는 것은 걸음 입력 [틱, 키] + 하트비트. 상대 선수는 같은 시뮬레이션으로 다시 계산한다 (R3)
-
-   [로비] 방 만들기(id = fsd-demo-######) / 참가(코드)
-     └ 연결 → hello 확인 → 선수 교환(char) → 상대 입장 → 경기장
-   [경기장] 각자 준비(ready, 조작 방식) → 방장이 go{at, g} → 카운트다운
-     └ 's'{g, t, s:[[틱,키]…]} 를 주고받음 → 둘 다 끝나면 결과
+   온라인 대결 (PeerJS · WebRTC) — 방 하나에 최대 8명, 각자 노트북에서
+   - 방장(host)이 가운데: 손님(guest)은 방장과만 연결하고, 방장이 받은 메시지를 다른 손님에게 전달한다
+   - 방장이 종목 카드를 누르면(ev) 모두 그 종목으로 → 각자 조작 방식을 고르면 준비(ready) → 방장이 go{at, g, seed}
+   - 종목별 방식
+       달리기: 걸음 입력 [틱, 키]를 주고받고 같은 시뮬레이션으로 다시 계산 (R3, 최대 4명)
+       수영: 각자 헤엄치고 위치를 0.1초마다 보냄 (최대 4명)
+       높이뛰기 · 양궁 · 지휘: 동시에 각자 하고 점수를 실시간으로 보냄 (최대 8명, 양궁 바람은 같은 seed)
+       줄다리기: 방장이 줄을 계산, 손님은 당길 때마다 알림 (최대 4:4, 한 사람 힘 = 팀 평균이라 인원이 달라도 공정)
+       펜싱 · 컬링: 방장이 경기를 계산, 손님은 입력만 보내고 방장이 보낸 상태를 그린다 (2명)
    ========================================================= */
-const NET_APP = 'fsd', NET_VER = 1, NET_PREFIX = 'fsd-demo-';
+const NET_APP = 'fsd', NET_VER = 2, NET_PREFIX = 'fsd-demo-', NET_MAX = 8;
 const ONLINE_LIMIT = 1800;            // 30초 × 60틱 (각 선수 자신의 시뮬레이션이 판정)
 const NET_CHECK_MS = 1000, NET_LEFT_MS = 3000, NET_CONNECT_MS = 10000, NET_BEAT_MS = 250;
+// 소식이 없으면 내보내는 시간: 경기 중엔 15초, 방에서는 70초(다른 탭에 가 있으면 브라우저가 타이머를 늦춘다)
+// 진짜로 창을 닫으면 연결 끊김(close)으로 먼저 알게 되고, 이 시간은 그게 안 올 때를 위한 것
+const netDropMs = () => ONLINE.started ? 15000 : 70000;
+let beatAt = 0;
+// 손님은 화면이 돌 때마다(1초에 한 번) 하트비트도 보낸다. 타이머는 브라우저가 늦출 수 있어서
+function netBeatFrame(now) { if (NET.helloOk && NET.role === 'guest' && now - beatAt > 1000) { beatAt = now; netSendConn(NET.conn, { type: 'beat' }); } }
 const CHAR_CAP = 128 * 1024, DECO_CAP = 100 * 1024;
-const ONLINE = { on: false };
-const NET = { peer: null, conn: null, role: null, code: '', helloOk: false, opp: null, me: null, offset: 0, rttBest: Infinity, pings: 0, gid: 0, myReady: null, oppReady: null, joinTimer: null };
+// 종목별 인원 [최소, 최대]
+const EV_NET = { run: [2, 4], swim: [2, 4], hj: [2, 8], arch: [2, 8], orch: [2, 8], tug: [2, 8], fence: [2, 2], curl: [2, 2] };
+const TUG_TEAM_MAX = 4;
+const ONLINE = { on: false, ev: null, g: 0, started: false, ready: {}, res: {}, live: {}, left: new Set(), members: [], seed: 0, cdTok: 0, myLive: '' };
+const NET = { peer: null, conn: null, conns: new Map(), role: null, code: '', helloOk: false, myId: null, members: new Map(), order: [], nextId: 0, offset: 0, rttBest: Infinity, pings: 0, gid: 0, joinTimer: null, hostAt: 0 };
 
 function netState(silenceMs) { return silenceMs > NET_LEFT_MS ? 'left' : silenceMs > NET_CHECK_MS ? 'checking' : 'ok'; }
 function checkHello(m) { return !!m && m.type === 'hello' && m.app === NET_APP && m.v === NET_VER; }
@@ -4150,6 +4398,10 @@ function onlineJudge(me, opp) {
   if (Math.abs(a.eff - b.eff) < 0.01) return { result: 'draw', a, b };
   return { result: a.eff < b.eff ? 'win' : 'lose', a, b };
 }
+// 줄다리기 팀 자동 배정: 사람이 적은 팀으로(같으면 파랑)
+function tugAutoTeam(teams) { const n = [0, 0]; for (const t of teams) n[t]++; return n[1] < n[0] ? 1 : 0; }
+// 팀을 바꿀 수 있는지: 4명 꽉 찬 팀으로는 못 간다
+function tugCanJoin(teams, t) { return teams.filter(x => x === t).length < TUG_TEAM_MAX; }
 
 /* ---------- 선수 데이터 주고받기 (R4) ---------- */
 function b64FromBytes(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
@@ -4203,38 +4455,63 @@ function peerOpts() {
 }
 function netReset(keepMsg) {
   clearTimeout(NET.joinTimer);
+  for (const c of NET.conns.values()) { try { c.close(); } catch { } }
   try { NET.conn && NET.conn.close(); } catch { }
   try { NET.peer && NET.peer.destroy(); } catch { }
-  Object.assign(NET, { peer: null, conn: null, role: null, code: '', helloOk: false, opp: null, me: null, offset: 0, rttBest: Infinity, pings: 0, myReady: null, oppReady: null });
-  ONLINE.on = false; $('#netReveal').hidden = true; $('#netCtl').hidden = false; netPill('연결 안 됨'); if (!keepMsg) netMsg('');
+  Object.assign(NET, { peer: null, conn: null, conns: new Map(), role: null, code: '', helloOk: false, myId: null, members: new Map(), order: [], nextId: 0, offset: 0, rttBest: Infinity, pings: 0, hostAt: 0 });
+  onlineOff();
+  $('#netReveal').hidden = true; $('#netCtl').hidden = false; netPill('연결 안 됨'); if (!keepMsg) netMsg('');
+  if (view === 'events') renderEvents();
 }
-function leaveOnline() { if (NET.peer || ONLINE.on) netReset(); }
+function leaveOnline() { if (NET.peer) netReset(); }
 const NET_PART = 12000; // PeerJS JSON 채널은 큰 메시지를 거절한다("Message too big") → 조각으로 나눠 보낸다
 let netPartSeq = 0; const netParts = new Map();
-function netSend(m) {
-  if (!(NET.conn && NET.conn.open)) return;
+function netSendConn(c, m) {
+  if (!(c && c.open)) return;
   const str = JSON.stringify(m);
-  if (str.length <= NET_PART) { NET.conn.send(m); return; }
+  if (str.length <= NET_PART) { c.send(m); return; }
   const id = ++netPartSeq, n = Math.ceil(str.length / NET_PART);
-  for (let i = 0; i < n; i++) NET.conn.send({ type: 'part', id, i, n, d: str.slice(i * NET_PART, (i + 1) * NET_PART) });
+  for (let i = 0; i < n; i++) c.send({ type: 'part', id, i, n, d: str.slice(i * NET_PART, (i + 1) * NET_PART) });
 }
-function netJoinPart(m) {
-  let e = netParts.get(m.id); if (!e) { e = { n: m.n, got: 0, d: [] }; netParts.set(m.id, e); }
+// 조각 모으기. src = 보낸 연결(방장은 여러 손님에게서 조각을 받으므로 섞이지 않게)
+function netJoinPart(m, src = '') {
+  const key = src + ':' + m.id;
+  let e = netParts.get(key); if (!e) { e = { n: m.n, got: 0, d: [] }; netParts.set(key, e); }
   if (e.d[m.i] === undefined) { e.d[m.i] = m.d; e.got++; }
   if (e.got < e.n) return null;
-  netParts.delete(m.id); return JSON.parse(e.d.join(''));
+  netParts.delete(key); return JSON.parse(e.d.join(''));
 }
+// 모두에게: 방장은 손님 전체에(except 빼고), 손님은 방장에게(방장이 나머지에게 전달)
+function netBroadcast(m, except) {
+  if (!m.from) m.from = NET.myId;
+  if (NET.role === 'host') { for (const [id, c] of NET.conns) if (id !== except) netSendConn(c, m); }
+  else netSendConn(NET.conn, m);
+}
+// 모두에게 보내고 나도 받은 것처럼 처리
+function netAll(m) { m.from = NET.myId; netBroadcast(m); onNetData(m); }
+// 방장에게만(방장 자신이면 바로 처리)
+function netToHost(m) { m.from = NET.myId; if (NET.role === 'host') onNetData(m); else netSendConn(NET.conn, m); }
+// 방장만 처리하고 다른 손님에게 전달하지 않는 메시지(입력 · 팀 바꾸기 · 하트비트)
+const NET_HOST_ONLY = new Set(['team', 'tp', 'fin', 'cua', 'cut', 'cus', 'beat']);
 function newCode() { return String(Math.floor(Math.random() * 900000) + 100000); }
+function netAddMe() {
+  const me = { id: NET.myId, name: playerName(), model: PLAYER_MODEL, ex: EX, thumb: thumbOf(EX), team: 0, lastAt: performance.now() };
+  me.payload = charPayload(EX, me.name);
+  NET.members.set(me.id, me); if (!NET.order.includes(me.id)) NET.order.push(me.id);
+  return me;
+}
 function netHost() {
   if (typeof Peer === 'undefined') { netMsg('PeerJS를 불러오지 못했어요. 인터넷 또는 vendor/ 폴더를 확인해 주세요.'); return; }
   if (!PLAYER_MODEL) { show('draw'); return; }
-  netReset(); NET.role = 'host'; NET.code = newCode(); $('#netFallback').hidden = true;
+  netReset(); NET.role = 'host'; NET.code = newCode(); NET.myId = 'h'; $('#netFallback').hidden = true;
   const peer = new Peer(NET_PREFIX + NET.code, peerOpts()); NET.peer = peer;
   netPill('방 만드는 중…'); netMsg('');
-  peer.on('open', () => { netPill('상대 기다리는 중'); netMsg(`방 코드: ${NET.code} — 상대에게 알려 주세요.`); });
+  peer.on('open', () => { NET.helloOk = true; netAddMe(); $('#netCtl').hidden = true; netMsg(`방 코드: ${NET.code} — 친구들에게 알려 주세요. (최대 ${NET_MAX}명)`); netLobby(); });
   peer.on('connection', c => {
-    if (NET.conn) { c.on('open', () => { c.send({ type: 'full' }); setTimeout(() => c.close(), 300); }); return; }
-    attachConn(c);
+    c.on('open', () => { if (NET.members.size >= NET_MAX || ONLINE.on) { netSendConn(c, { type: 'full', why: ONLINE.on ? 'playing' : 'full' }); setTimeout(() => c.close(), 300); } });
+    c.on('data', m => { try { onHostData(c, m); } catch (err) { console.error('[온라인]', err); } });
+    c.on('close', () => { if (c.mid) netDrop(c.mid); });
+    c.on('error', e => console.warn('[온라인] 연결 오류', e));
   });
   peer.on('error', e => netError(e));
 }
@@ -4244,179 +4521,367 @@ function netJoin() {
   const code = $('#netCode').value.replace(/\D/g, '');
   if (code.length !== 6) { netMsg('6자리 숫자 코드를 입력해 주세요.'); return; }
   // 같은 화면에서 내 방 코드로 참가하면 내 방이 먼저 닫혀 버린다 → 막고 안내만 한다
-  if (NET.role === 'host' && code === NET.code) { netMsg(`${code}는 이 화면에서 만든 방이에요. 상대는 다른 노트북(또는 다른 브라우저 창)에서 이 코드로 참가해야 해요. 이 화면은 그대로 두세요.`); return; }
+  if (NET.role === 'host' && code === NET.code) { netMsg(`${code}는 이 화면에서 만든 방이에요. 친구는 다른 노트북(또는 다른 브라우저 창)에서 이 코드로 참가해야 해요. 이 화면은 그대로 두세요.`); return; }
   netReset(); NET.role = 'guest'; NET.code = code; $('#netFallback').hidden = true;
   const peer = new Peer(peerOpts()); NET.peer = peer; netPill('연결 중…'); netMsg('');
   NET.joinTimer = setTimeout(() => { if (!NET.helloOk) { netReset(true); netMsg('연결 실패 — 10초 안에 방에 들어가지 못했어요.'); $('#netFallback').hidden = false; } }, NET_CONNECT_MS);
-  peer.on('open', () => attachConn(peer.connect(NET_PREFIX + code, { reliable: true, serialization: 'json' })));
+  peer.on('open', () => {
+    const c = peer.connect(NET_PREFIX + code, { reliable: true, serialization: 'json' }); NET.conn = c;
+    c.on('open', () => netSendConn(c, { type: 'hello', app: NET_APP, v: NET_VER }));
+    c.on('data', m => { NET.hostAt = performance.now(); try { onNetData(m); } catch (err) { console.error('[온라인]', err); } });
+    c.on('close', () => { if (NET.conn === c) netLost('방장과 연결이 끊겼어요.'); });
+    c.on('error', e => console.warn('[온라인] 연결 오류', e));
+  });
   peer.on('error', e => netError(e));
+}
+function netLost(msg) {
+  const was = ONLINE.on; netReset(true); netMsg(msg);
+  if (was || view === 'race' || view === 'record') { closeReplay(); show('events'); }
 }
 function netError(e) {
   const t = e && e.type;
-  if (t === 'unavailable-id' && NET.role === 'host') { netHost(); return; } // 코드가 겹치면 새 코드
+  if (t === 'unavailable-id' && NET.role === 'host' && !NET.helloOk) { netHost(); return; } // 코드가 겹치면 새 코드
+  if (t === 'peer-unavailable' && NET.role === 'host') return; // 방장 쪽에서 나간 손님을 찾을 때 나는 오류는 무시
   const msg = t === 'peer-unavailable' ? '방을 찾지 못했어요. 코드가 맞는지, 방을 만든 쪽 화면이 닫히거나 새로고침되지 않았는지 확인해 주세요.'
     : t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed' ? '연결 서버에 닿지 못했어요.'
       : t === 'browser-incompatible' ? '이 브라우저는 온라인 대결을 지원하지 않아요.' : '연결 오류가 났어요.';
-  const inRace = ONLINE.on && RACE && RACE.online;
-  netReset(true); netMsg(msg); $('#netFallback').hidden = false;
-  if (inRace) opponentLeft();
+  netLost(msg); $('#netFallback').hidden = false;
 }
-function attachConn(c) {
-  NET.conn = c;
-  c.on('open', () => { netSend({ type: 'hello', app: NET_APP, v: NET_VER }); });
-  c.on('data', m => { try { onNetData(m); } catch (err) { console.error('[온라인]', err); } });
-  c.on('close', () => { if (NET.conn !== c) return; const inRace = ONLINE.on && RACE && RACE.online; netReset(true); netMsg('상대가 나갔어요.'); if (inRace) opponentLeft(); });
-  c.on('error', e => console.warn('[온라인] 연결 오류', e));
+// 방장: 손님에게서 받은 메시지
+function onHostData(c, m) {
+  if (!m || typeof m !== 'object') return;
+  if (m.type === 'part') { const w = netJoinPart(m, c.peer); if (w) onHostData(c, w); return; }
+  if (m.type === 'hello') {
+    if (!checkHello(m)) { netSendConn(c, { type: 'bye', why: 'version' }); setTimeout(() => c.close(), 300); return; }
+    if (c.mid) return;
+    const id = 'p' + (++NET.nextId); c.mid = id; NET.conns.set(id, c);
+    NET.members.set(id, { id, name: '…', team: tugAutoTeam(NET.order.map(x => NET.members.get(x).team)), lastAt: performance.now() }); NET.order.push(id);
+    netSendConn(c, { type: 'welcome', id, from: 'h' });
+    for (const mm of NET.members.values()) if (mm.payload) netSendConn(c, { ...mm.payload, from: mm.id });
+    netRoster(); return;
+  }
+  if (!c.mid) return;
+  m.from = c.mid;
+  const mem = NET.members.get(c.mid); if (mem) mem.lastAt = performance.now();
+  if (m.type === 'ping') { netSendConn(c, { type: 'pong', c: m.c, h: Date.now() }); return; }
+  if (!NET_HOST_ONLY.has(m.type)) netBroadcast(m, c.mid);
+  onNetData(m);
 }
+// 방장: 손님이 나감
+function netDrop(id) {
+  if (NET.role !== 'host' || !NET.members.has(id)) return;
+  // PeerJS는 끊어도 상대에게 close가 안 갈 때가 있어서 먼저 알린다
+  const c = NET.conns.get(id); NET.conns.delete(id); if (c) { netSendConn(c, { type: 'bye', why: 'drop' }); setTimeout(() => { try { c.close(); } catch { } }, 300); }
+  NET.members.delete(id); NET.order = NET.order.filter(x => x !== id);
+  netRoster(); onlineMemberLeft(id);
+}
+function netRoster() {
+  if (NET.role !== 'host') return;
+  netBroadcast({ type: 'roster', list: NET.order.map(id => { const m = NET.members.get(id); return { id, name: m.name, team: m.team }; }) });
+  netLobby(); if (ONLINE.on) onlineLineup();
+}
+function pingHost() { netSendConn(NET.conn, { type: 'ping', c: Date.now() }); }
+// 모두: 받은 메시지 처리(방장은 자기가 보낸 것도 여기로 들어온다)
 function onNetData(m) {
   if (!m || typeof m !== 'object') return;
-  if (m.type === 'part') { const whole = netJoinPart(m); if (whole) onNetData(whole); return; }
-  if (m.type === 'full') { netReset(true); netMsg('방이 꽉 찼어요.'); return; }
-  if (m.type === 'hello') {
-    if (!checkHello(m)) { netSend({ type: 'bye', why: 'version' }); netReset(true); netMsg('버전이 달라요. 같은 파일로 열어 주세요.'); return; }
-    NET.helloOk = true; clearTimeout(NET.joinTimer); netPill('연결됨', true); $('#netCtl').hidden = true;
-    netMsg('연결됐어요. 선수를 주고받는 중…');
-    NET.me = { ex: EX, model: PLAYER_MODEL, name: playerName() };
-    netSend(charPayload(EX, playerName()));
-    if (NET.role === 'guest') pingHost();
-    return;
+  if (m.type === 'part') { const w = netJoinPart(m, 'h'); if (w) onNetData(w); return; }
+  const from = m.from;
+  if (m.type === 'full') { netLost(m.why === 'playing' ? '지금 경기 중인 방이에요. 끝나면 다시 들어와 주세요.' : `방이 꽉 찼어요(최대 ${NET_MAX}명).`); return; }
+  if (m.type === 'bye') { netLost(m.why === 'version' ? '버전이 달라요. 같은 주소로 열어 주세요(새로고침).' : m.why === 'drop' ? '연결이 오래 끊겨서 방에서 나왔어요.' : '방이 닫혔어요.'); return; }
+  if (m.type === 'welcome') {
+    NET.myId = m.id; NET.helloOk = true; clearTimeout(NET.joinTimer); $('#netCtl').hidden = true;
+    const me = netAddMe(); netBroadcast(me.payload); netMsg('들어왔어요!'); sfx.unlock(); sfx.chime(); pingHost(); netLobby(); return;
   }
   if (!NET.helloOk) return;
-  if (m.type === 'bye') { netReset(true); netMsg(m.why === 'version' ? '버전이 달라요. 같은 파일로 열어 주세요.' : '상대가 나갔어요.'); return; }
-  if (m.type === 'char') {
-    modelFromPayload(m).then(({ model, ex }) => {
-      NET.opp = { model, ex, name: String(m.name || '상대').slice(0, 8) };
-      $('#netMeImg').src = thumbOf(NET.me.ex); $('#netMeName').textContent = '나 · ' + NET.me.name;
-      $('#netOppImg').src = thumbOf(ex, '#e2412f'); $('#netOppName').textContent = NET.opp.name;
-      $('#netReveal').hidden = false; netMsg('상대 입장!'); sfx.unlock(); sfx.chime();
-    }).catch(err => { netMsg(err.message || '상대 선수를 만들지 못했어요.'); });
-    return;
-  }
-  if (m.type === 'ping') { netSend({ type: 'pong', c: m.c, h: Date.now() }); return; }
   if (m.type === 'pong') {
     const now = Date.now(), rtt = now - m.c;
     if (rtt < NET.rttBest) { NET.rttBest = rtt; NET.offset = m.h - (m.c + rtt / 2); }
     if (++NET.pings < 5) setTimeout(pingHost, 100);
     return;
   }
-  if (m.type === 'ready') {
-    NET.oppReady = m.mode === 'cam' ? 'cam' : 'key';
-    if (RACE && RACE.online && RACE.phase === 'ready') {
-      const old = RACE.racers[1]; RACE.racers[1] = makeRemote(old.model, old.name, old.lane, NET.oppReady, old.color);
-      lineupOnline();
-    }
-    if (NET.role === 'host') maybeGo();
+  if (m.type === 'beat') return;
+  if (m.type === 'char') {
+    if (from === NET.myId) return;
+    const mem = NET.members.get(from) || { id: from, team: 0 }; NET.members.set(from, mem);
+    mem.name = String(m.name || '선수').slice(0, 8);
+    if (NET.role === 'host') { const p = { ...m }; delete p.from; mem.payload = p; netRoster(); }
+    modelFromPayload(m).then(({ model, ex }) => {
+      mem.model = model; mem.ex = ex; mem.thumb = thumbOf(ex, '#e2412f'); netLobby();
+      if (NET.role === 'host') sfx.chime();
+      if (ONLINE.on && !ONLINE.started) startEvent(ONLINE.ev); // 경기장에 있는데 늦게 온 선수 그림 → 다시 세운다
+    }).catch(err => { console.warn('[온라인] 선수 그림', err); });
     return;
   }
-  if (m.type === 'go') { if (RACE && RACE.online) startOnlineCountdown(m.at - NET.offset, m.g); return; }
-  if (m.type === 's') {
-    if (!RACE || !RACE.online || m.g !== RACE.gid) return; // 다른 판의 메시지는 버린다
-    for (const st of m.s) RACE.remoteSteps.push(st);
-    RACE.netConfirmed = Math.max(RACE.netConfirmed, m.t); RACE.lastNetAt = performance.now();
+  if (m.type === 'roster') {
+    if (NET.role === 'host') return;
+    const ids = m.list.map(x => x.id), gone = NET.order.filter(id => !ids.includes(id));
+    for (const x of m.list) { const mem = NET.members.get(x.id) || { id: x.id }; if (x.id !== NET.myId || mem.name === undefined) mem.name = x.name; mem.team = x.team; NET.members.set(x.id, mem); }
+    for (const id of gone) NET.members.delete(id);
+    NET.order = ids; netLobby();
+    for (const id of gone) onlineMemberLeft(id);
+    if (ONLINE.on) { onlineLineup(); if (ONLINE.ev === 'tug' && !ONLINE.started && TG.phase === 'off') tgPrepare(); }
+    return;
   }
+  if (m.type === 'ev') { onlineEnter(m.ev); return; }
+  if (m.type === 'lobby') { if (ONLINE.on) { onlineOff(); closeReplay(); show('events'); } return; }
+  if (m.type === 'team') {
+    if (NET.role !== 'host' || ONLINE.started) return;
+    const mem = NET.members.get(from), t = m.team ? 1 : 0, teams = NET.order.filter(id => id !== from).map(id => NET.members.get(id).team);
+    if (mem && tugCanJoin(teams, t)) { mem.team = t; netRoster(); if (ONLINE.ev === 'tug' && TG.phase === 'off') tgPrepare(); }
+    return;
+  }
+  if (!ONLINE.on) return;
+  if (m.type === 'ready') { if (m.ev !== ONLINE.ev) return; ONLINE.ready[from] = m.mode; onlineLineup(); maybeGo(); return; }
+  if (m.type === 'go') { onlineGo(m); return; }
+  if (m.g !== undefined && m.g !== ONLINE.g) return; // 다른 판의 메시지는 버린다
+  if (m.type === 'live') { ONLINE.live[from] = m.txt; netBoard(); return; }
+  if (m.type === 'res') { ONLINE.res[from] = { score: m.score, txt: m.txt }; onlineResUpdate(); return; }
+  if (m.type === 's') {
+    const R = RACE && RACE.online && RACE.racers.find(r => r.net && r.net.id === from); if (!R) return;
+    for (const st of m.s) R.net.remoteSteps.push(st);
+    R.net.netConfirmed = Math.max(R.net.netConfirmed, m.t); R.net.lastNetAt = performance.now();
+    return;
+  }
+  if (m.type === 'sw') { swNet(from, m); return; }
+  if (m.type === 'tp') { if (NET.role === 'host') tgNetPull(from); return; }
+  if (m.type === 'tg') { if (NET.role !== 'host') tgNetState(m); return; }
+  if (m.type === 'tgend') { if (NET.role !== 'host') tgNetEnd(m); return; }
+  if (m.type === 'fin') { if (NET.role === 'host') fnNetInput(m); return; }
+  if (m.type === 'fn') { if (NET.role !== 'host') fnNetState(m); return; }
+  if (m.type === 'fnev') { if (NET.role !== 'host') fnNetEvent(m); return; }
+  if (m.type === 'cua' || m.type === 'cut' || m.type === 'cus') { if (NET.role === 'host') cuNetInput(m); return; }
+  if (m.type === 'cu') { if (NET.role !== 'host') cuNetState(m); return; }
 }
-function pingHost() { netSend({ type: 'ping', c: Date.now() }); }
+// 하트비트: 1초마다. 방장은 8초 동안 소식 없는 손님을 내보내고, 손님은 방장 소식이 없으면 나간다
+setInterval(() => {
+  if (!NET.helloOk) return;
+  const now = performance.now();
+  if (NET.role === 'guest') { netSendConn(NET.conn, { type: 'beat' }); if (NET.hostAt && now - NET.hostAt > netDropMs()) netLost('방장과 연결이 끊겼어요.'); }
+  else { netBroadcast({ type: 'beat' }); for (const [id, m] of NET.members) if (id !== 'h' && now - m.lastAt > netDropMs()) netDrop(id); }
+}, 1000);
 
-/* ---------- 경기 ---------- */
+/* ---------- 방(로비) 화면 ---------- */
+function netLobby() {
+  const on = NET.helloOk; $('#netReveal').hidden = !on;
+  if (!on) return;
+  $('#netMembers').innerHTML = NET.order.map(id => { const m = NET.members.get(id) || {}; return `<figure><img src="${m.thumb || ''}" alt=""><figcaption>${id === 'h' ? '👑 ' : ''}${id === NET.myId ? '나 · ' : ''}${esc(m.name || '…')}</figcaption></figure>`; }).join('');
+  const n = NET.order.length;
+  $('#netHint').textContent = NET.role === 'host' ? (n < 2 ? '친구가 들어오길 기다리는 중… 코드를 알려 주세요.' : '아래 종목 카드를 누르면 모두 함께 그 종목으로 들어가요.') : '방장이 종목을 고르면 바로 그 종목으로 들어가요.';
+  netPill(`${n}명 · ${NET.role === 'host' ? '방장' : '참가 중'}`, true);
+  if (view === 'events') renderEvents();
+}
+const netName = id => { const m = NET.members.get(id); return m ? m.name : '나간 선수'; };
+
+/* ---------- 경기 공통: 들어가기 → 준비 → 출발 → 결과 ---------- */
+function onlineEnter(ev) {
+  if (!PLAYER_MODEL) return;
+  ONLINE.cdTok++;
+  Object.assign(ONLINE, { on: true, ev, started: false, ready: {}, res: {}, live: {}, left: new Set(), members: NET.order.slice(), myLive: '' });
+  closeReplay(); startEvent(ev);
+}
+function onlineOff() {
+  ONLINE.cdTok++;
+  Object.assign(ONLINE, { on: false, ev: null, started: false, ready: {}, res: {}, live: {}, left: new Set(), members: [] });
+  const b = $('#netBoard'); if (b) b.hidden = true;
+}
+// 시작 화면의 참가자 목록(준비 상태 · 레인 · 팀)
+function onlineLineup() {
+  if (!ONLINE.on) return;
+  const ev = ONLINE.ev, tug = ev === 'tug', lanes = ev === 'run' || ev === 'swim';
+  $('#lineup').hidden = false;
+  $('#lineup').innerHTML = NET.order.map((id, i) => {
+    const m = NET.members.get(id) || {}, r = ONLINE.ready[id], me = id === NET.myId;
+    const col = tug ? (m.team ? '#e2412f' : '#1f4fd1') : me ? '#ffc93c' : '#e2412f';
+    const head = (lanes ? `${i + 1}레인 · ` : '') + (tug ? (m.team ? '빨강 팀 · ' : '파랑 팀 · ') : '');
+    return `<li><i style="background:${col};border:1.5px solid #16181d"></i>${me ? '<b>나 · ' + esc(m.name || '') + '</b>' : esc(m.name || '…')}<small>${head}${r ? '준비 완료 · ' + (r === 'cam' ? '손' : '키보드') : '고르는 중…'}</small></li>`;
+  }).join('');
+  const tt = $('#tugTeam'); tt.hidden = !tug || ONLINE.started;
+  if (tug) { const my = (NET.members.get(NET.myId) || {}).team || 0; $$('#tugTeam [data-team]').forEach(b => b.classList.toggle('on', +b.dataset.team === my)); }
+}
+$$('#tugTeam [data-team]').forEach(b => b.onclick = () => { if (ONLINE.on && !ONLINE.started) netToHost({ type: 'team', team: +b.dataset.team }); });
+function onlineReady(mode) {
+  if (EVENT === 'orch') orEnsureAudio();
+  netAll({ type: 'ready', ev: ONLINE.ev, mode });
+  if (!ONLINE.started) evMsg('다른 선수들이 준비하길 기다리는 중…');
+}
+// 방장: 모두 준비되면 3초 뒤 출발
+function maybeGo() {
+  if (NET.role !== 'host' || !ONLINE.on || ONLINE.started) return;
+  const ids = NET.order, [a, b] = EV_NET[ONLINE.ev];
+  if (ids.length < a || ids.length > b || !ids.every(id => ONLINE.ready[id] && (id === NET.myId || NET.members.get(id).model))) return;
+  if (ONLINE.ev === 'tug' && [0, 1].some(t => !ids.some(id => NET.members.get(id).team === t))) { evMsg('파랑 · 빨강 팀에 한 명 이상씩 있어야 시작해요'); return; }
+  netAll({ type: 'go', ev: ONLINE.ev, at: Date.now() + 3000, g: ++NET.gid, seed: (Math.random() * 1e9) | 0, modes: { ...ONLINE.ready }, ids: ids.slice() });
+}
+function onlineGo(m) {
+  if (m.ev !== ONLINE.ev || ONLINE.started) return;
+  Object.assign(ONLINE, { started: true, g: m.g, seed: m.seed, modes: m.modes, members: m.ids, res: {}, live: {} });
+  const at = m.at - NET.offset, ev = ONLINE.ev, mode = m.modes[NET.myId] || 'key';
+  $('#evMsg').hidden = true; $('#tugTeam').hidden = true; netBoard();
+  if (ev === 'run') { startOnlineCountdown(at, m.g); return; }
+  if (ev === 'fence') { const tok = ONLINE.cdTok; setTimeout(() => { if (tok === ONLINE.cdTok && ONLINE.on) fnOnlineStart(mode); }, Math.max(0, at - Date.now())); return; }
+  if (ev === 'tug') tgPrepare(); // 팀 확정
+  syncCountdown(at, () => {
+    if (ev === 'swim') swStart(mode);
+    else if (ev === 'hj') hjBegin(mode);
+    else if (ev === 'arch') { AR.rng = mulberry32(ONLINE.seed); arBegin(mode); }
+    else if (ev === 'orch') orBegin(mode);
+    else if (ev === 'tug') tgStart(mode);
+    else if (ev === 'curl') cuOnlineStart(mode);
+  });
+}
+// 방장 시각에 맞춘 3 · 2 · 1 · 출발!
+function syncCountdown(at, onGo) {
+  const tok = ++ONLINE.cdTok; $('#ovCount').hidden = false; $('#countTxt').textContent = '';
+  ['3', '2', '1', '출발!'].forEach((txt, i) => setTimeout(() => {
+    if (tok !== ONLINE.cdTok || !ONLINE.on) return;
+    $('#countTxt').textContent = txt; sfx.beep(i < 3 ? 520 : 1040, i < 3 ? 0.12 : 0.35);
+    if (i === 3) { onGo(); setTimeout(() => { $('#ovCount').hidden = true; }, 600); }
+  }, Math.max(0, at - 2250 + i * 750 - Date.now())));
+}
+// 선수가 나갔을 때 종목별 처리
+function onlineMemberLeft(id) {
+  if (!ONLINE.on || !ONLINE.members.includes(id)) return;
+  ONLINE.left.add(id); onlineLineup(); netBoard(); onlineResUpdate();
+  if (!ONLINE.started) { feedOrMsg(`${netName(id)} 선수가 나갔어요`); maybeGo(); return; }
+  if (ONLINE.ev === 'run') opponentLeft(id);
+  else if (ONLINE.ev === 'swim') { const s = SW.sw.find(x => x.id === id); if (s) s.left = true; }
+  else if (ONLINE.ev === 'tug') tgNetLeft(id);
+  else if (ONLINE.ev === 'fence') fnNetLeft();
+  else if (ONLINE.ev === 'curl') cuNetLeft();
+  evMsg('선수 한 명이 나갔어요', 2);
+}
+function feedOrMsg(t) { evMsg(t, 2); }
+// 실시간 점수판(높이뛰기 · 양궁 · 지휘): 내 상태를 0.5초마다 보낸다
+let liveAt = 0, liveTimer = null;
+function onlineLive(txt) {
+  if (!ONLINE.on || !ONLINE.started || txt === ONLINE.myLive) return;
+  ONLINE.myLive = txt; netBoard();
+  if (liveTimer) return;
+  liveTimer = setTimeout(() => { liveTimer = null; liveAt = performance.now(); netBroadcast({ type: 'live', g: ONLINE.g, txt: ONLINE.myLive }); }, Math.max(0, 300 - (performance.now() - liveAt)));
+}
+function netBoard() {
+  const b = $('#netBoard'); if (!b) return;
+  const show = ONLINE.on && ONLINE.started && ['hj', 'arch', 'orch'].includes(ONLINE.ev);
+  b.hidden = !show; if (!show) return;
+  b.innerHTML = '<strong>온라인 점수판</strong>' + ONLINE.members.map(id => `<div${id === NET.myId ? ' class="me"' : ''}><span>${id === NET.myId ? '나' : esc(netName(id))}</span><em>${ONLINE.left.has(id) ? '나감' : esc(id === NET.myId ? ONLINE.myLive : ONLINE.live[id] || '-')}</em></div>`).join('');
+}
+// 결과(동시에 하는 종목): 내 점수를 보내고 순위표를 만든다. score가 클수록 위
+function onlineStandings() {
+  const rows = ONLINE.members.map(id => ({ id, r: ONLINE.res[id], left: ONLINE.left.has(id) }))
+    .sort((a, b) => (b.r ? b.r.score : -Infinity) - (a.r ? a.r.score : -Infinity));
+  return rows;
+}
+function onlineStandHtml() {
+  const rows = onlineStandings();
+  return '<tr><th>순위</th><th>선수</th><th class="num">기록</th></tr>' + rows.map((x, i) => `<tr${x.id === NET.myId ? ' style="background:#fff6d6"' : ''}><td>${x.r ? i + 1 : '-'}</td><td>${x.id === NET.myId ? '<b>나 · ' + esc(playerName()) + '</b>' : esc(netName(x.id))}</td><td class="num">${x.r ? esc(x.r.txt) : x.left ? '나감' : '하는 중…'}</td></tr>`).join('');
+}
+function onlineMyRank() {
+  const rows = onlineStandings(), i = rows.findIndex(x => x.id === NET.myId), done = rows.every(x => x.r || x.left);
+  return { rank: i + 1, done };
+}
+function onlineResult(o, score, txt) {
+  ONLINE.res[NET.myId] = { score, txt }; netBroadcast({ type: 'res', g: ONLINE.g, score, txt });
+  const { rank, done } = onlineMyRank();
+  return Object.assign(o, {
+    medal: done ? rank + '위' : '…', medalBg: done ? MEDAL_BG[Math.min(3, rank - 1)] : MEDAL_BG[3], tblTitle: done ? '온라인 순위' : '온라인 순위 (다른 선수 기다리는 중)', tbl: onlineStandHtml(),
+    rank: '<tr><td class="lede">온라인 대결은 랭킹에 남지 않아요. 랭킹은 혼자 한 기록이에요.</td></tr>',
+    info: '다른 선수가 끝나면 순위표가 바로 바뀌어요.', again: NET.role === 'host' ? '다시 대결' : '방으로 돌아가기',
+  });
+}
+function onlineResUpdate() {
+  if (!ONLINE.on || !ONLINE.res[NET.myId] || !['swim', 'hj', 'arch', 'orch'].includes(ONLINE.ev)) return;
+  const { rank, done } = onlineMyRank();
+  $('#resTable').innerHTML = onlineStandHtml(); $('#resTblTitle').textContent = done ? '온라인 순위' : '온라인 순위 (다른 선수 기다리는 중)';
+  $('#resMedal').textContent = done ? rank + '위' : '…'; $('#resMedal').style.background = done ? MEDAL_BG[Math.min(3, rank - 1)] : MEDAL_BG[3];
+}
+// 결과 화면 버튼: 방장은 모두를 다시 시작/로비로, 손님은 방(종목 화면)으로
+function onlineAgain() { if (NET.role === 'host') netAll({ type: 'ev', ev: EVENT }); else { onlineOff(); closeReplay(); show('events'); netMsg('방장이 다시 시작하면 바로 들어가요.'); } }
+function onlineLobby() { if (NET.role === 'host') netAll({ type: 'lobby' }); else { onlineOff(); closeReplay(); show('events'); } }
+
+/* ---------- 100m 달리기 (최대 4명, 걸음 입력으로 같은 시뮬레이션) ---------- */
 function makeRemote(model, name, lane, mode, color) {
   const r = makeRacer(model, name, lane, true, mode, color); // 물리값은 상대 화면의 플레이어와 같게
   r.isPlayer = false; r.kind = 'remote'; r.simTick = 0; return r;
 }
-function enterOnlineRace() { if (!NET.opp) return; ONLINE.on = true; startEvent('run'); }
+const RUN_COLORS = ['#e2412f', '#1f4fd1', '#2e8b57', '#7a3fd1'];
 function prepareOnlineRace() {
-  const myLane = NET.role === 'host' ? 0 : 1, oppLane = 1 - myLane; // 레인은 두 화면에서 같게 (넘어짐 물리가 레인에 의존)
+  // 레인 = 방 명단 순서(모든 화면에서 같게: 넘어짐 물리가 레인에 의존)
+  const ids = NET.order.slice(0, 4), myLane = ids.indexOf(NET.myId);
   RACE = { seed: 0, mode: 'key', tick: 0, racers: [], replay: false, rec: { seed: 0, mode: 'key', steps: [], endTick: null, name: playerName() }, recIdx: 0, events: [],
-    online: true, gid: -1, remoteSteps: [], remoteIdx: 0, netConfirmed: 0, lastNetAt: performance.now(), sentIdx: 0, lastSendAt: 0, oppLeft: false, waitShown: false };
+    online: true, gid: -1, sentIdx: 0, lastSendAt: 0, waitShown: false };
   RACE.racers.push(makeRacer(PLAYER_MODEL, playerName(), myLane, true, 'key', '#16181d'));
-  RACE.racers.push(makeRemote(NET.opp.model, NET.opp.name, oppLane, NET.oppReady || 'key', '#e2412f'));
+  ids.forEach((id, lane) => {
+    if (id === NET.myId) return; const m = NET.members.get(id); if (!m || !m.model) return;
+    const r = makeRemote(m.model, m.name, lane, 'key', RUN_COLORS[lane]); r.net = { id, remoteSteps: [], remoteIdx: 0, netConfirmed: 0, lastNetAt: performance.now() }; RACE.racers.push(r);
+  });
   RACE.phase = 'ready'; RACE.camMode = 'intro'; RACE.camSnap = true;
-  setupRaceMeshes(RACE); lineupOnline();
+  setupRaceMeshes(RACE);
   $('#hudProg').innerHTML = RACE.racers.map((r, i) => `<div class="prog-lane"><span class="prog-dot" id="pd${i}" style="left:0;background:${r.isPlayer ? '#ffc93c' : r.color}"></span></div>`).join('');
-  $('#ovStart').hidden = false; $('#ovResult').hidden = true; $('#ovHand').hidden = true; $('#ovCount').hidden = true;
-  $('#startMsg').textContent = '조작 방식을 고르면 준비 완료! 둘 다 준비되면 동시에 출발해요.';
-  $('#hudCam').hidden = true; $('#hudHint').hidden = true; $('#pads').hidden = true; $('#feed').innerHTML = '';
+  $('#feed').innerHTML = '';
   updateHUD();
-}
-function lineupOnline() {
-  const st = r => r.isPlayer ? (NET.myReady ? '준비 완료' : '조작 방식 고르는 중') : (NET.oppReady ? `준비 완료 · ${NET.oppReady === 'cam' ? '손가락' : '키보드'}` : '준비 중…');
-  $('#lineup').innerHTML = RACE.racers.map(r => `<li><i style="background:${r.isPlayer ? '#ffc93c' : r.color};border:1.5px solid #16181d"></i>${r.isPlayer ? '나 · ' + esc(r.name) : esc(r.name)}<small>${r.lane + 1}레인 · ${st(r)}</small></li>`).join('');
-}
-function onlineReady(mode) {
-  NET.myReady = mode; netSend({ type: 'ready', mode }); lineupOnline();
-  evMsg(NET.oppReady ? '곧 출발해요!' : '상대 준비를 기다리는 중…');
-  if (NET.role === 'host') maybeGo();
-}
-function maybeGo() {
-  if (!(NET.myReady && NET.oppReady && RACE && RACE.online && RACE.phase === 'ready')) return;
-  const at = Date.now() + 3000, g = ++NET.gid;
-  netSend({ type: 'go', at, g }); startOnlineCountdown(at, g);
 }
 function startOnlineCountdown(at, g) {
   const race = RACE; if (!race || race.phase !== 'ready') return;
-  if (NET.role === 'guest' && NET.rttBest / 2 > 50) console.warn(`[온라인] 출발 시각 오차가 ${Math.round(NET.rttBest / 2)}ms일 수 있어요(판정에는 영향 없음)`);
-  race.gid = g; race.phase = 'countdown'; $('#evMsg').hidden = true; $('#ovCount').hidden = false;
-  const seq = ['3', '2', '1', '출발!'];
-  seq.forEach((txt, i) => setTimeout(() => {
-    if (RACE !== race) return;
-    $('#countTxt').textContent = txt; sfx.beep(i < 3 ? 520 : 1040, i < 3 ? 0.12 : 0.35);
-    if (i === 3) { race.phase = 'running'; race.camMode = 'chase'; simAcc = 0; inputQueue.length = 0; race.lastNetAt = performance.now(); setTimeout(() => { $('#ovCount').hidden = true; }, 600); showHint(); }
-  }, Math.max(0, at - 2250 + i * 750 - Date.now())));
+  // 상대의 조작 방식(손 · 키보드)에 따라 물리값이 달라서 출발 직전에 다시 만든다
+  race.racers = race.racers.map(r => { if (!r.net) return r; const n = makeRemote(r.model, r.name, r.lane, ONLINE.modes[r.net.id] || 'key', r.color); n.net = r.net; return n; });
+  race.gid = g; race.phase = 'countdown'; $('#evMsg').hidden = true;
+  syncCountdown(at, () => { if (RACE !== race) return; race.phase = 'running'; race.camMode = 'chase'; simAcc = 0; inputQueue.length = 0; for (const r of race.racers) if (r.net) r.net.lastNetAt = performance.now(); showHint(); });
 }
 function onlineFrame(race) {
   if (race.phase !== 'running' && race.phase !== 'ended') return;
   const now = performance.now();
   // 내 걸음 입력 + 하트비트 보내기
   if (race.rec.steps.length > race.sentIdx || now - race.lastSendAt > NET_BEAT_MS) {
-    netSend({ type: 's', g: race.gid, t: race.tick, s: race.rec.steps.slice(race.sentIdx) });
+    netBroadcast({ type: 's', g: ONLINE.g, t: race.tick, s: race.rec.steps.slice(race.sentIdx) });
     race.sentIdx = race.rec.steps.length; race.lastSendAt = now;
   }
   if (race.phase !== 'running') return;
-  const P = race.racers[0], R = race.racers[1];
-  const st = netState(now - race.lastNetAt);
-  if (st === 'left') { opponentLeft(); return; }
-  const meDone = P.finishTime !== null || race.tick >= ONLINE_LIMIT, oppDone = R.finishTime !== null || R.simTick >= ONLINE_LIMIT;
-  if (st === 'checking') { if (!race.checkShown) { race.checkShown = true; evMsg('상대 연결 확인 중…'); } }
+  const P = race.racers[0];
+  let checking = false;
+  // 3초 넘게 소식이 없으면 "확인 중", 방에서 나갔거나 10초 넘게 조용하면 나간 것으로 본다(다시 오면 복귀)
+  for (const R of race.racers) {
+    if (!R.net) continue;
+    const quiet = now - R.net.lastNetAt;
+    R.left = ONLINE.left.has(R.net.id) || quiet > 10000;
+    if (!R.left && netState(quiet) !== 'ok') checking = true;
+  }
+  if (checking) { if (!race.checkShown) { race.checkShown = true; evMsg('상대 연결 확인 중…'); } }
   else if (race.checkShown) { race.checkShown = false; $('#evMsg').hidden = true; }
-  if (meDone && !oppDone && !race.waitShown && st === 'ok') { race.waitShown = true; evMsg(P.finishTime !== null ? '결승! 상대를 기다리는 중' : '시간 종료! 상대를 기다리는 중'); }
-  if (meDone && oppDone) endRace();
+  const done = r => r.left || r.finishTime !== null || r.simTick >= ONLINE_LIMIT;
+  const meDone = P.finishTime !== null || race.tick >= ONLINE_LIMIT, othersDone = race.racers.every(r => !r.net || done(r));
+  if (meDone && !othersDone && !race.waitShown && !checking) { race.waitShown = true; evMsg(P.finishTime !== null ? '결승! 다른 선수를 기다리는 중' : '시간 종료! 다른 선수를 기다리는 중'); }
+  if (meDone && othersDone) endRace();
 }
-function opponentLeft() {
-  if (!RACE || !RACE.online || RACE.oppLeft) return;
-  RACE.oppLeft = true;
-  if (RACE.phase === 'running' || RACE.phase === 'countdown' || RACE.phase === 'ready') endOnlineRace();
+function opponentLeft(id) {
+  if (!RACE || !RACE.online) return;
+  const R = RACE.racers.find(r => r.net && r.net.id === id); if (R) R.left = true;
+  if (RACE.phase !== 'ended' && RACE.racers.every(r => !r.net || r.left)) endOnlineRace();
 }
 function endOnlineRace() {
   const race = RACE; if (race.phase === 'ended') return;
   race.phase = 'ended'; race.rec.endTick = race.tick + 90; $('#evMsg').hidden = true;
-  NET.myReady = null; NET.oppReady = null; // 다음 판 준비 신호는 새로 받는다
-  const P = race.racers[0], R = race.racers[1], J = onlineJudge(P, R);
-  const t = s => s.fin !== null ? s.fin.toFixed(2) + '초' : '완주 못함';
-  const left = race.oppLeft;
-  const medal = left ? '종료' : { win: '승', lose: '패', draw: '무', none: '-' }[J.result];
-  const head = left ? '상대가 나갔어요' : { win: '이겼어요!', lose: '졌어요', draw: '무승부!', none: '둘 다 완주 못 했어요' }[J.result];
-  const meImg = thumbOf(NET.me ? NET.me.ex : EX), oppImg = NET.opp ? thumbOf(NET.opp.ex, '#e2412f') : '';
-  const win = J.result === 'win' ? 0 : J.result === 'lose' ? 1 : -1;
-  const verify = `<strong>${head}</strong><span>판정은 두 화면이 같은 걸음 입력으로 다시 계산한 기록이에요. ${!J.a.valid ? '내 기록은 1초 16걸음을 넘어 무효예요. ' : ''}${!left && !J.b.valid ? '상대 기록은 1초 16걸음을 넘어 무효예요.' : ''}</span>
-    <div class="res-duo"><figure class="${win === 0 ? 'win' : ''}"><img src="${meImg}" alt=""><figcaption>나 · ${esc(P.name)}<br>${t(J.a)}</figcaption></figure>${oppImg ? `<figure class="${win === 1 ? 'win' : ''}"><img src="${oppImg}" alt=""><figcaption>${esc(R.name)}<br>${left ? '-' : t(J.b)}</figcaption></figure>` : ''}</div>`;
-  const row = (r, s, me) => `<tr><td>${me ? '<b>나 · ' + esc(r.name) + '</b>' : esc(r.name) + ' <small class="lede">상대</small>'}</td><td class="num">${me || !left ? t(s) : '-'}</td><td class="num">${r.falls}</td></tr>`;
+  const P = race.racers[0], t = s => s.fin !== null ? s.fin.toFixed(2) + '초' : '완주 못함';
+  const rows = race.racers.map(r => ({ r, s: onlineScore(r), me: r === P, left: !!r.left && r.finishTime === null }))
+    .sort((a, b) => (a.left - b.left) || (a.s.eff - b.s.eff) || (b.r.x - a.r.x));
+  const rank = rows.findIndex(x => x.me) + 1, mine = rows[rank - 1].s, alone = rows.every(x => x.me || x.left);
+  const invalid = rows.filter(x => !x.s.valid).map(x => x.me ? '내 기록' : esc(x.r.name) + ' 기록');
+  const verify = `<strong>${alone ? '다른 선수가 모두 나갔어요' : rank === 1 && mine.eff !== Infinity ? '1등!' : rank + '등'}</strong><span>판정은 모든 화면이 같은 걸음 입력으로 다시 계산한 기록이에요.${invalid.length ? ' ' + invalid.join(', ') + '은 1초 16걸음을 넘어 무효예요.' : ''}</span>
+    <div class="res-duo">${rows.map((x, i) => `<figure class="${i === 0 && x.s.eff !== Infinity ? 'win' : ''}"><img src="${x.me ? thumbOf(EX) : thumbOf((NET.members.get(x.r.net.id) || {}).ex || EX, '#e2412f')}" alt=""><figcaption>${x.me ? '나 · ' : ''}${esc(x.r.name)}<br>${x.left ? '나감' : t(x.s)}</figcaption></figure>`).join('')}</div>`;
   showResult({
-    medal, medalBg: J.result === 'win' && !left ? MEDAL_BG[0] : MEDAL_BG[3],
-    main: J.a.fin !== null ? `${J.a.fin.toFixed(2)}<em>초</em>` : '완주 못함', sub: `${P.steps}걸음 · 넘어짐 ${P.falls}번`,
-    verify, verifyClass: left ? 'bad' : 'ok', tblTitle: '온라인 대결',
-    tbl: '<tr><th>선수</th><th class="num">기록</th><th class="num">넘어짐</th></tr>' + row(P, J.a, true) + row(R, J.b, false),
+    medal: mine.eff === Infinity ? '-' : rank + '위', medalBg: MEDAL_BG[Math.min(3, rank - 1)],
+    main: mine.fin !== null ? `${mine.fin.toFixed(2)}<em>초</em>` : '완주 못함', sub: `${P.steps}걸음 · 넘어짐 ${P.falls}번`,
+    verify, verifyClass: alone ? 'bad' : 'ok', tblTitle: '온라인 대결',
+    tbl: '<tr><th>순위</th><th>선수</th><th class="num">기록</th><th class="num">넘어짐</th></tr>' + rows.map((x, i) => `<tr${x.me ? ' style="background:#fff6d6"' : ''}><td>${x.s.eff === Infinity ? '-' : i + 1}</td><td>${x.me ? '<b>나 · ' + esc(x.r.name) + '</b>' : esc(x.r.name)}</td><td class="num">${x.left ? '나감' : t(x.s)}</td><td class="num">${x.r.falls}</td></tr>`).join(''),
     rank: '<tr><td class="lede">온라인 대결은 랭킹에 남지 않아요. 랭킹은 혼자서 CPU와 달린 기록이에요.</td></tr>',
-    info: left ? '연결이 끊겼어요. 종목 화면에서 다시 방을 만들 수 있어요.' : '', again: left ? '혼자 달리기' : '다시 대결',
+    info: '', again: NET.role === 'host' ? '다시 대결' : '방으로 돌아가기',
   });
-  if (left) ONLINE.on = false;
 }
 
 $('#btnNetHost').onclick = netHost;
 $('#btnNetJoin').onclick = netJoin;
 $('#netCode').addEventListener('keydown', e => { if (e.key === 'Enter') netJoin(); });
 $('#btnNetRetry').onclick = () => { $('#netFallback').hidden = true; netMsg(''); if (NET.role === 'host') netHost(); else netJoin(); };
-$('#btnNetGo').onclick = enterOnlineRace;
 $('#btnNetLeave').onclick = () => leaveOnline();
-$('#btnBackConv').addEventListener('click', () => { if (ONLINE.on) { ONLINE.on = false; netReset(); } });
 
 /* =========================================================
    자동 검사: 주소 뒤에 ?selftest 를 붙여 열면 실행 (R9)
@@ -4519,7 +4984,7 @@ function runSelftest() {
     return { pass: j.result === 'draw', detail: j.result };
   });
   T('프로토콜: hello 확인(앱·버전)', () => {
-    const r = [checkHello({ type: 'hello', app: 'fsd', v: 1 }), checkHello({ type: 'hello', app: 'fsd', v: 2 }), checkHello({ type: 'hello', app: 'x', v: 1 }), checkHello(null)];
+    const r = [checkHello({ type: 'hello', app: 'fsd', v: NET_VER }), checkHello({ type: 'hello', app: 'fsd', v: NET_VER + 1 }), checkHello({ type: 'hello', app: 'x', v: NET_VER }), checkHello(null)];
     return { pass: r.join() === 'true,false,false,false', detail: r.join() };
   });
   T('프로토콜: 하트비트 끊김 상태(1초 확인 중, 3초 나감)', () => {
